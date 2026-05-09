@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ROSALYN Clinic</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="#home" class="brand">
+        <img src="logo.jpeg" alt="ROSALYN Logo" class="logo-img">
+        <div class="brand-text">
+          <h2>ROSALYN</h2>
+          <p>Beauty Clinic</p>
+        </div>
+      </a>
+
+      <!-- Desktop nav -->
+      <nav class="nav-links">
+        <a href="#home">الرئيسية</a>
+        <a href="#services">الخدمات</a>
+        <a href="#offers">العروض</a>
+        <a href="#booking">الحجز</a>
+        <a href="#contact">التواصل</a>
+      </nav>
+
+      <!-- Hamburger button (mobile only) -->
+      <button class="nav-toggle" aria-label="فتح القائمة" aria-expanded="false" id="navToggle">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile drawer -->
+  <div class="nav-drawer" id="navDrawer" role="dialog" aria-modal="true" aria-label="القائمة الرئيسية">
+    <div class="nav-drawer-overlay" id="navOverlay"></div>
+    <nav class="nav-drawer-panel">
+      <button class="nav-drawer-close" id="navClose" aria-label="إغلاق القائمة">&#x2715;</button>
+      <a href="#home">الرئيسية</a>
+      <a href="#services">الخدمات</a>
+      <a href="#offers">العروض</a>
+      <a href="#booking">الحجز</a>
+      <a href="#contact">التواصل</a>
+    </nav>
+  </div>
+
+  <section class="hero" id="home">
+    <div class="hero-overlay"></div>
+    <div class="container hero-grid">
+      <div class="hero-text">
+        <span class="hero-badge">Luxury Beauty Experience</span>
+        <h1>عناية راقية ببشرتك<br>وجلسات احترافية تمنحك الثقة</h1>
+        <p>في ROSALYN نقدم تجربة متكاملة في الليزر والعناية بالبشرة بجودة عالية وأجواء راقية.</p>
+        <div class="hero-buttons">
+          <a href="#booking" class="btn btn-primary">احجزي الآن</a>
+          <a href="#services" class="btn btn-outline">اكتشفي الخدمات</a>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <div class="hero-card-inner">
+          <div class="hero-logo-wrap">
+            <img src="logo.jpeg" alt="ROSALYN" class="hero-logo">
+          </div>
+          <h3>ROSALYN Beauty Clinic</h3>
+          <p>خدمات الليزر، تنظيف البشرة، جلسات النضارة، والاستشارات في أجواء أنيقة وخدمة احترافية.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section services" id="services">
+    <div class="container">
+      <div class="section-header">
+        <span>Our Services</span>
+        <h2>خدماتنا</h2>
+        <p>مجموعة من الخدمات المختارة بعناية لتوفير أفضل تجربة عناية وجمال.</p>
+      </div>
+      <div class="services-grid" id="servicesContainer"></div>
+    </div>
+  </section>
+
+  <section class="section offers" id="offers">
+    <div class="container">
+      <div class="section-header">
+        <span>Packages & Offers</span>
+        <h2>العروض والباقات</h2>
+        <p>باقات مرنة تناسب احتياجات مختلفة مع قيمة أفضل.</p>
+      </div>
+      <div class="offers-grid" id="offersContainer"></div>
+    </div>
+  </section>
+
+  <section class="section booking" id="booking">
+    <div class="container booking-grid">
+      <div class="booking-info">
+        <span class="booking-badge">Book Now</span>
+        <h2>احجزي موعدك الآن</h2>
+        <p>اختاري الفرع والتاريخ، وهتظهر لك المواعيد المتاحة فقط.</p>
+      </div>
+
+      <div class="booking-card">
+        <h3>نموذج الحجز</h3>
+        <p>أدخلي بياناتك وسنتواصل معك</p>
+
+        <form id="bookingForm" class="booking-form">
+          <div class="form-grid">
+            <input type="text" id="fullName" placeholder="الاسم بالكامل" required />
+            <input type="text" id="phone" placeholder="رقم الهاتف" required />
+            <input type="number" id="age" placeholder="العمر" required />
+
+            <select id="branch" required>
+              <option value="">اختاري الفرع</option>
+              <option value="فرع العبور">فرع العبور</option>
+              <option value="فرع ميت غمر">فرع ميت غمر</option>
+              <option value="فرع المنيا">فرع المنيا</option>
+            </select>
+
+            <select id="service" required>
+              <option value="">اختاري الخدمة</option>
+            </select>
+
+            <input type="text" id="bodyArea" placeholder="المنطقة المطلوبة" />
+            <input type="date" id="preferredDate" required />
+
+            <select id="slotId" required>
+              <option value="">اختاري الموعد المتاح</option>
+            </select>
+
+            <select id="sessionType" required>
+              <option value="">نوع الجلسة</option>
+              <option value="كشف">كشف</option>
+              <option value="جلسة">جلسة</option>
+              <option value="متابعة">متابعة</option>
+            </select>
+
+            <select id="contactMethod" required>
+              <option value="">طريقة التواصل</option>
+              <option value="اتصال">اتصال</option>
+              <option value="واتساب">واتساب</option>
+            </select>
+
+            <textarea id="medicalNotes" placeholder="ملاحظات إضافية أو حالة طبية" rows="4"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary submit-btn" id="submitBtn">تأكيد الحجز</button>
+          <div id="messageBox" class="message-box" style="display:none;"></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="section contact" id="contact">
+    <div class="container">
+      <div class="section-header">
+        <span>Contact Us</span>
+        <h2>تواصل معنا</h2>
+        <p>يمكنك التواصل معنا أو زيارة أقرب فرع ليكي</p>
+      </div>
+
+      <div class="branches-wrapper">
+        <div class="branch-card-pro">
+          <h3>فرع العبور</h3>
+          <div class="rows-wrap">
+            <div class="branch-row location-row">
+              <a href="https://maps.app.goo.gl/2cHsVKgQbmfTtBUS9?g_st=iwb" target="_blank" rel="noopener">
+                <i class="fa-solid fa-location-dot"></i>
+                Location
+              </a>
+            </div>
+            <div class="branch-row address-row">
+              <i class="fa-solid fa-map-pin"></i>
+              <span>الحي الأول — مول أبو الدهب، خلف سنتر العبور، الدور الثالث</span>
+            </div>
+            <div class="branch-row">
+              <i class="fa-brands fa-whatsapp"></i>
+              <a href="https://wa.me/201064224054" target="_blank" rel="noopener">01064224054</a>
+            </div>
+            <div class="branch-row">
+              <i class="fa-brands fa-whatsapp"></i>
+              <a href="https://wa.me/201148926023" target="_blank" rel="noopener">01148926023</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="branch-card-pro">
+          <h3>فرع ميت غمر</h3>
+          <div class="rows-wrap">
+            <div class="branch-row location-row">
+              <a href="https://maps.app.goo.gl/JAL5dwR66ehyMr6FA?g_st=iwb" target="_blank" rel="noopener">
+                <i class="fa-solid fa-location-dot"></i>
+                Location
+              </a>
+            </div>
+            <div class="branch-row address-row">
+              <i class="fa-solid fa-map-pin"></i>
+              <span>شارع أبو سن — برج البطل، الدور الثالث العلوي</span>
+            </div>
+            <div class="branch-row">
+              <i class="fa-brands fa-whatsapp"></i>
+              <a href="https://wa.me/201080740894" target="_blank" rel="noopener">01080740894</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="branch-card-pro">
+          <h3>فرع المنيا</h3>
+          <div class="rows-wrap">
+            <div class="branch-row location-row">
+              <a href="https://maps.app.goo.gl/ExzcduFvL4TrDe397?g_st=iwb" target="_blank" rel="noopener">
+                <i class="fa-solid fa-location-dot"></i>
+                Location
+              </a>
+            </div>
+            <div class="branch-row address-row">
+              <i class="fa-solid fa-map-pin"></i>
+              <span>برج الياقوتة، بجوار السوبر جيت عند الكوبري السريع، الدور الأول علوي</span>
+            </div>
+            <div class="branch-row">
+              <i class="fa-brands fa-whatsapp"></i>
+              <a href="https://wa.me/201024020524" target="_blank" rel="noopener">01024020524</a>
+            </div>
+            <div class="branch-row">
+              <i class="fa-brands fa-whatsapp"></i>
+              <a href="https://wa.me/201118411476" target="_blank" rel="noopener">01118411476</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="social-icons">
+        <a href="https://www.instagram.com/rosalyn_clinics?igsh=NTRqemZybGdzZDZo" target="_blank" rel="noopener" aria-label="Instagram">
+          <i class="fab fa-instagram"></i>
+        </a>
+        <a href="https://www.facebook.com/share/1K4NNksYCp/?mibextid=wwXIfr" target="_blank" rel="noopener" aria-label="Facebook">
+          <i class="fab fa-facebook-f"></i>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <p>© 2026 ROSALYN Beauty Clinic - جميع الحقوق محفوظة</p>
+      <p>Powered by Shereen A Saaad</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

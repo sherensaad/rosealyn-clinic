@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ROSALYN Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css" />
+  <style>
+    :root {
+      --rose: #b76e79;
+      --rose-dark: #9f5a66;
+      --rose-light: #f7e8eb;
+      --rose-pale: #fff7f5;
+      --text: #2f2522;
+      --text-muted: #7b6a65;
+      --border: #e7d4cf;
+      --white: #ffffff;
+      --red: #c94f4f;
+      --green: #4f9e6f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Tajawal', Arial, sans-serif;
+      background: var(--rose-pale);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .hidden { display: none !important; }
+
+    #loginPage {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #fff7f5 0%, #fde8ed 100%);
+    }
+
+    .login-card {
+      background: white;
+      border-radius: 24px;
+      padding: 40px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 20px 60px rgba(183,110,121,0.15);
+      text-align: center;
+    }
+
+    .login-card .logo-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--rose);
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+
+    .login-card .logo-sub {
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      font-size: 13px;
+    }
+
+    .login-card form { display: grid; gap: 12px; }
+
+    .topbar {
+      background: white;
+      padding: 16px 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .topbar-logo { font-size: 20px; font-weight: 800; color: var(--rose); letter-spacing: 1px; }
+    .branch-badge { background: var(--rose-light); color: var(--rose-dark); padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 13px; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+    .tabs-bar {
+      background: white;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      overflow-x: auto;
+      gap: 0;
+      padding: 0 24px;
+    }
+
+    .tab-btn {
+      padding: 14px 20px;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      font-family: 'Tajawal', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover { color: var(--rose); background: var(--rose-pale); }
+    .tab-btn.active { color: var(--rose); border-bottom-color: var(--rose); }
+
+    .tab-content { display: none; padding: 24px; }
+    .tab-content.active { display: block; }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+      border-top: 4px solid var(--rose-light);
+    }
+
+    .stat-card.highlight { border-top-color: var(--rose); }
+    .stat-card .stat-num { font-size: 28px; font-weight: 800; color: var(--rose); }
+    .stat-card .stat-label { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+
+    .section-box {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+    }
+
+    .section-box h2 {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      color: var(--text);
+      border-right: 4px solid var(--rose);
+      padding-right: 10px;
+    }
+
+    .add-form {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+      align-items: flex-start;
+      background: var(--rose-pale);
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    .add-form input,
+    .add-form select,
+    .add-form textarea {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: 'Tajawal', sans-serif;
+      font-size: 13px;
+      background: white;
+      flex: 1;
+      min-width: 130px;
+    }
+
+    .add-form textarea { resize: vertical; min-height: 70px; }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Tajawal', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .btn-primary { background: var(--rose); color: white; }
+    .btn-primary:hover { background: var(--rose-dark); }
+    .btn-danger { background: var(--red); color: white; }
+    .btn-danger:hover { background: #af3d3d; }
+    .btn-success { background: var(--green); color: white; }
+    .btn-success:hover { background: #3d8559; }
+    .btn-soft { background: var(--rose-light); color: var(--rose-dark); }
+    .btn-soft:hover { background: #f0d5da; }
+    .btn-logout { background: #f5e8ea; color: #9f5a66; }
+    .btn-logout:hover { background: #fdeaea; color: var(--red); }
+
+    .table-wrap { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+    th {
+      background: var(--rose-pale);
+      color: var(--text-muted);
+      font-weight: 700;
+      padding: 10px 8px;
+      text-align: center;
+      white-space: nowrap;
+      border-bottom: 2px solid var(--border);
+    }
+
+    td {
+      padding: 10px 8px;
+      text-align: center;
+      border-bottom: 1px solid #f5eded;
+      vertical-align: middle;
+    }
+
+    tr:hover td { background: #fdfafb; }
+
+    td select, td input {
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Tajawal', sans-serif;
+      font-size: 12px;
+      background: white;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-new { background: #fff3cd; color: #856404; }
+    .status-confirmed { background: #d1ecf1; color: #0c5460; }
+    .status-done { background: #d4edda; color: #155724; }
+    .status-cancelled { background: #f8d7da; color: #721c24; }
+    .status-absent { background: #e2e3e5; color: #383d41; }
+
+    .schedule-free td { background: #f8fff8; }
+    .schedule-booked td { background: #fff5f5; }
+    .schedule-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+
+    .finance-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+
+    .fin-card { padding: 14px; border-radius: 12px; text-align: center; }
+    .fin-card.total { background: #fff3e0; }
+    .fin-card.paid { background: #e8f5e9; }
+    .fin-card.remaining { background: #fce4ec; }
+    .fin-card .fin-num { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .fin-card.total .fin-num { color: #e65100; }
+    .fin-card.paid .fin-num { color: #2e7d32; }
+    .fin-card.remaining .fin-num { color: #c62828; }
+    .fin-card .fin-label { font-size: 12px; color: var(--text-muted); }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 20px;
+    }
+
+    .modal-box {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      width: min(900px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+    }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-header h2 { font-size: 18px; color: var(--rose); }
+
+    .profile-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+
+    .profile-box {
+      background: var(--rose-pale);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .profile-box .box-label { font-size: 11px; color: var(--rose-dark); font-weight: 700; margin-bottom: 4px; }
+    .profile-box .box-value { font-size: 15px; font-weight: 800; color: var(--text); }
+
+    .modal-section-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-muted);
+      margin: 16px 0 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--rose);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 14px;
+      z-index: 99999;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      transition: opacity 0.3s;
+    }
+
+    .toast.error { background: var(--red); }
+    .toast.hide { opacity: 0; pointer-events: none; }
+
+    .check-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+
+    .check-wrap input[type="checkbox"] { width: auto; }
+
+    .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+
+    .filter-bar input,
+    .filter-bar select {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: 'Tajawal', sans-serif;
+      font-size: 13px;
+      background: white;
+    }
+
+    .notes-cell { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: help; }
+
+    .pay-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      background: #e3f2fd;
+      color: #0d47a1;
+    }
+
+    /* Reminder Toggle */
+    .toggle-wrap { display: flex; align-items: center; gap: 10px; }
+    .toggle-track {
+      width: 44px; height: 24px; border-radius: 12px;
+      background: var(--border); position: relative; cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-thumb {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: white; position: absolute; top: 2px; right: 2px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+
+    /* Reminder info box */
+    .reminder-info-box {
+      background: var(--rose-pale);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--rose-dark);
+      font-weight: 700;
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .profile-grid { grid-template-columns: repeat(2, 1fr); }
+      .finance-summary { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .topbar { flex-wrap: wrap; gap: 10px; }
+      .tab-content { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="login-logo-wrap" style="margin-bottom:12px;">
+      <img src="logo.jpeg" alt="ROSALYN" style="width:80px; border-radius:50%; box-shadow:0 4px 20px rgba(183,110,121,0.3);">
+    </div>
+    <div class="logo-title">ROSALYN</div>
+    <div class="logo-sub">Beauty Clinic — لوحة الإدارة</div>
+
+    <form id="loginForm">
+      <input type="text" id="adminUsername" placeholder="اسم المستخدم" required autocomplete="username">
+      <input type="password" id="adminPassword" placeholder="كلمة المرور" required autocomplete="current-password">
+      <select id="loginBranch" required>
+        <option value="">اختاري الفرع</option>
+        <option value="فرع العبور">فرع العبور</option>
+        <option value="فرع ميت غمر">فرع ميت غمر</option>
+        <option value="فرع المنيا">فرع المنيا</option>
+      </select>
+      <button type="submit" class="btn btn-primary" style="width:100%; padding:13px;">دخول</button>
+    </form>
+
+    <div id="loginMsg" style="margin-top:12px; color:#c94f4f; font-weight:700; display:none;"></div>
+  </div>
+</div>
+
+<!-- ADMIN PAGE -->
+<div id="adminPage" class="hidden">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="logo.jpeg" alt="ROSALYN" style="width:42px; height:42px; border-radius:50%; object-fit:cover; box-shadow:0 2px 10px rgba(183,110,121,0.3);">
+      <span class="topbar-logo">ROSALYN</span>
+      <span class="branch-badge" id="branchBadge">---</span>
+    </div>
+    <div class="topbar-right">
+      <span style="color:var(--text-muted); font-size:13px;" id="adminUserLabel"></span>
+      <button class="btn btn-logout" id="logoutBtn">خروج</button>
+    </div>
+  </header>
+
+  <nav class="tabs-bar" id="tabsBar">
+    <button class="tab-btn active" data-tab="overview">📊 نظرة عامة</button>
+    <button class="tab-btn" data-tab="schedule">📅 جدول المواعيد</button>
+    <button class="tab-btn" data-tab="bookings">📋 الحجوزات</button>
+    <button class="tab-btn" data-tab="add-client">➕ إضافة عميل</button>
+    <button class="tab-btn" data-tab="session-tracker">💉 متابعة الجلسات</button>
+    <button class="tab-btn" data-tab="finances">💰 الحسابات</button>
+    <button class="tab-btn" data-tab="slots">🕐 المواعيد المتاحة</button>
+    <button class="tab-btn" data-tab="clients">👤 ملفات العملاء</button>
+    <button class="tab-btn" data-tab="services">✨ الخدمات</button>
+    <button class="tab-btn" data-tab="offers">🎁 العروض</button>
+    <button class="tab-btn" data-tab="reminders">🔔 التذكيرات</button>
+    <button class="tab-btn" data-tab="settings">⚙️ الإعدادات</button>
+  </nav>
+
+  <!-- ===== TAB: OVERVIEW ===== -->
+  <div id="tab-overview" class="tab-content active">
+    <div class="stats-row">
+      <div class="stat-card highlight">
+        <div class="stat-num" id="ovBookings">0</div>
+        <div class="stat-label">إجمالي الحجوزات</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="ovToday">0</div>
+        <div class="stat-label">حجوزات اليوم</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="ovTotal">0</div>
+        <div class="stat-label">إجمالي المبالغ</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="ovRemaining">0</div>
+        <div class="stat-label">إجمالي المتبقي</div>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <h2>آخر الحجوزات</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>الاسم</th><th>الهاتف</th><th>الخدمة</th>
+              <th>المنطقة</th><th>التاريخ</th><th>الوقت</th><th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody id="overviewRecentBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: SCHEDULE ===== -->
+  <div id="tab-schedule" class="tab-content">
+    <div class="section-box">
+      <h2>جدول المواعيد اليومي</h2>
+      <div class="schedule-controls">
+        <input type="date" id="scheduleDate" style="padding:10px 14px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <span style="color:var(--text-muted); font-size:13px;" id="scheduleSlotCount"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>الوقت</th><th>العميلة</th><th>رقم الهاتف</th><th>الخدمة</th>
+              <th>المنطقة</th><th>نوع الجلسة</th><th>الحالة</th><th>ملاحظات</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: BOOKINGS ===== -->
+  <div id="tab-bookings" class="tab-content">
+    <div class="section-box">
+      <h2>إدارة الحجوزات</h2>
+      <div class="filter-bar">
+        <input type="text" id="bookingSearch" placeholder="بحث بالاسم أو الهاتف…" style="min-width:200px;">
+        <select id="bookingStatusFilter">
+          <option value="">كل الحالات</option>
+          <option value="حجز جديد">حجز جديد</option>
+          <option value="تم التأكيد">تم التأكيد</option>
+          <option value="تم الحضور">تم الحضور</option>
+          <option value="مكتمل">مكتمل</option>
+          <option value="غياب">غياب</option>
+          <option value="ملغي">ملغي</option>
+          <option value="تأجيل">تأجيل</option>
+        </select>
+        <input type="date" id="bookingDateFilter">
+        <button class="btn btn-soft" id="clearBookingFilters">مسح الفلتر</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>الاسم</th><th>الهاتف</th><th>العمر</th>
+              <th>الخدمة</th><th>المنطقة</th><th>التاريخ</th><th>الوقت</th>
+              <th>نوع الجلسة</th><th>التواصل</th><th>الحالة</th>
+              <th>ملاحظات</th><th>واتساب</th><th>ملف العميلة</th><th>حذف</th>
+            </tr>
+          </thead>
+          <tbody id="clientsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: ADD CLIENT ===== -->
+  <div id="tab-add-client" class="tab-content">
+    <div class="section-box" style="max-width:700px;">
+      <h2>➕ إضافة عميل / حجز جديد مباشر</h2>
+      <form id="adminAddClientForm" style="display:grid; gap:12px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <input type="text" id="acFullName" placeholder="الاسم بالكامل *" required
+            style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+          <input type="text" id="acPhone" placeholder="رقم الهاتف *" required
+            style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+          <input type="number" id="acAge" placeholder="العمر"
+            style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+          <select id="acService"
+            style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+            <option value="">اختاري الخدمة</option>
+          </select>
+          <input type="text" id="acBodyArea" placeholder="المنطقة المطلوبة"
+            style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+          <input type="date" id="acDate" required
+            style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+          <input type="time" id="acTime"
+            style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+          <select id="acSessionType"
+            style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+            <option value="">نوع الجلسة</option>
+            <option value="كشف">كشف</option>
+            <option value="جلسة">جلسة</option>
+            <option value="متابعة">متابعة</option>
+          </select>
+          <select id="acContactMethod"
+            style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+            <option value="">طريقة التواصل</option>
+            <option value="اتصال">اتصال</option>
+            <option value="واتساب">واتساب</option>
+          </select>
+          <select id="acStatus"
+            style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+            <option value="حجز جديد">حجز جديد</option>
+            <option value="تم التأكيد">تم التأكيد</option>
+            <option value="تم الحضور">تم الحضور</option>
+            <option value="مكتمل">مكتمل</option>
+            <option value="غياب">غياب</option>
+            <option value="ملغي">ملغي</option>
+            <option value="تأجيل">تأجيل</option>
+          </select>
+        </div>
+        <textarea id="acNotes" placeholder="ملاحظات طبية أو إضافية" rows="3"
+          style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif; resize:vertical;"></textarea>
+        <button type="submit" class="btn btn-primary" style="width:100%; padding:14px;">✅ حفظ الحجز</button>
+        <div id="acMsg" style="display:none; padding:10px; border-radius:10px; text-align:center; font-weight:700;"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== TAB: SESSION TRACKER ===== -->
+  <div id="tab-session-tracker" class="tab-content">
+    <div class="section-box">
+      <h2>💉 متابعة الجلسات — النبضات والباور والدكتور</h2>
+      <div class="filter-bar" style="margin-bottom:16px;">
+        <input type="text" id="trackerSearch" placeholder="بحث باسم العميلة أو الهاتف…" style="min-width:220px;">
+        <button class="btn btn-soft" id="refreshTrackerBtn">🔄 تحديث</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>الاسم</th><th>الهاتف</th><th>الخدمة</th><th>المنطقة</th>
+              <th>الجلسات المحجوزة</th><th>تمت</th><th>المتبقية</th>
+              <th>النبضات المحجوزة</th><th>المستهلكة</th><th>المتبقية</th>
+              <th>الباور</th><th>الدكتور</th><th>حفظ</th>
+            </tr>
+          </thead>
+          <tbody id="trackerTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-box" style="max-width:700px;">
+      <h2>➕ إضافة / تحديث بيانات جلسات عميلة</h2>
+      <form id="trackerAddForm" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <input type="text" id="trClientName" placeholder="اسم العميلة *" required
+          style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="text" id="trPhone" placeholder="رقم الهاتف *" required
+          style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="text" id="trService" placeholder="الخدمة"
+          style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="text" id="trArea" placeholder="المنطقة"
+          style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="number" id="trTotalSessions" placeholder="إجمالي الجلسات المحجوزة" min="0"
+          style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="number" id="trDoneSessions" placeholder="الجلسات التي تمت" min="0"
+          style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="number" id="trTotalPulses" placeholder="إجمالي النبضات المحجوزة" min="0"
+          style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="number" id="trUsedPulses" placeholder="النبضات المستهلكة" min="0"
+          style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="text" id="trPower" placeholder="الباور (Power)"
+          style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="text" id="trDoctor" placeholder="الدكتور / المعالج"
+          style="padding:11px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <button type="submit" class="btn btn-primary" style="grid-column:1/-1; padding:13px;">✅ حفظ بيانات الجلسة</button>
+        <div id="trMsg" style="display:none; grid-column:1/-1; padding:10px; border-radius:10px; text-align:center; font-weight:700;"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== TAB: FINANCES ===== -->
+  <div id="tab-finances" class="tab-content">
+    <div class="finance-summary">
+      <div class="fin-card total"><div class="fin-num" id="sumTotal">0</div><div class="fin-label">إجمالي المبالغ</div></div>
+      <div class="fin-card paid"><div class="fin-num" id="sumPaid">0</div><div class="fin-label">المدفوع</div></div>
+      <div class="fin-card remaining"><div class="fin-num" id="sumRemaining">0</div><div class="fin-label">المتبقي</div></div>
+    </div>
+
+    <div class="section-box">
+      <h2>إضافة حساب جديد</h2>
+      <form id="financeForm" class="add-form">
+        <input type="date" id="financeDate" required style="min-width:140px;">
+        <input type="text" id="financeClientName" placeholder="اسم العميلة" required style="min-width:150px;">
+        <input type="text" id="financeService" placeholder="الخدمة / المنطقة" style="min-width:140px;">
+        <input type="number" id="totalAmount" placeholder="المبلغ الكلي" required min="0" style="min-width:110px;">
+        <input type="number" id="paidAmount" placeholder="المدفوع" required min="0" style="min-width:110px;">
+        <input type="number" id="remainingAmount" placeholder="المتبقي" readonly style="min-width:110px; background:#f5f5f5;">
+        <select id="paymentMethod" style="min-width:120px;">
+          <option value="كاش">كاش</option>
+          <option value="فودافون كاش">فودافون كاش</option>
+          <option value="إنستاباي">إنستاباي</option>
+          <option value="تحويل بنكي">تحويل بنكي</option>
+          <option value="أجل">أجل</option>
+        </select>
+        <input type="text" id="financeNotes" placeholder="ملاحظات" style="min-width:130px;">
+        <button type="submit" class="btn btn-primary">إضافة</button>
+      </form>
+
+      <div class="filter-bar">
+        <input type="text" id="financeSearch" placeholder="بحث…">
+        <input type="date" id="financeDateFilter">
+        <button class="btn btn-soft" id="clearFinanceFilters">مسح</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>التاريخ</th><th>العميلة</th><th>الخدمة/المنطقة</th>
+              <th>الكلي</th><th>المدفوع</th><th>الباقي</th>
+              <th>طريقة الدفع</th><th>ملاحظات</th><th>حذف</th>
+            </tr>
+          </thead>
+          <tbody id="financeTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: SLOTS ===== -->
+  <div id="tab-slots" class="tab-content">
+    <div class="section-box">
+      <h2>إضافة مواعيد متاحة</h2>
+      <form id="slotForm" class="add-form">
+        <input type="date" id="slotDate" required style="min-width:150px;">
+        <input type="time" id="slotTime" required style="min-width:130px;">
+        <button type="submit" class="btn btn-primary">إضافة الموعد</button>
+      </form>
+
+      <div class="filter-bar">
+        <input type="date" id="slotDateFilter" placeholder="فلتر بالتاريخ">
+        <select id="slotStatusFilter">
+          <option value="">كل المواعيد</option>
+          <option value="0">متاح</option>
+          <option value="1">محجوز</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>التاريخ</th><th>الوقت</th><th>الحالة</th><th>اسم العميلة</th><th>حذف</th>
+            </tr>
+          </thead>
+          <tbody id="slotsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: CLIENTS ===== -->
+  <div id="tab-clients" class="tab-content">
+    <div class="section-box">
+      <h2>ملفات العملاء</h2>
+      <div class="filter-bar">
+        <input type="text" id="clientSearch" placeholder="بحث بالاسم أو رقم الهاتف…" style="min-width:220px;">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>الاسم</th><th>الهاتف</th><th>عدد الجلسات</th>
+              <th>إجمالي المدفوع</th><th>إجمالي المتبقي</th><th>آخر زيارة</th><th>الملف</th>
+            </tr>
+          </thead>
+          <tbody id="clientsDirectoryBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: SERVICES ===== -->
+  <div id="tab-services" class="tab-content">
+    <div class="section-box">
+      <h2>إضافة خدمة جديدة</h2>
+      <form id="serviceForm" class="add-form">
+        <input type="text" id="serviceName" placeholder="اسم الخدمة" required style="min-width:150px;">
+        <textarea id="serviceDescription" placeholder="وصف الخدمة" required style="min-width:200px;"></textarea>
+        <input type="text" id="servicePrice" placeholder="السعر مثل 300 EGP" required style="min-width:130px;">
+        <input type="text" id="serviceTag" placeholder="التصنيف" style="min-width:110px;">
+        <input type="number" id="serviceSortOrder" placeholder="الترتيب" value="0" style="min-width:90px;">
+        <label class="check-wrap">
+          <input type="checkbox" id="serviceIsFeatured">
+          مميزة
+        </label>
+        <button type="submit" class="btn btn-primary">إضافة</button>
+      </form>
+    </div>
+    <div class="section-box">
+      <h2>الخدمات الحالية</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>اسم الخدمة</th><th>الوصف</th><th>السعر</th>
+              <th>التصنيف</th><th>الترتيب</th><th>مميزة</th><th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="servicesTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: OFFERS ===== -->
+  <div id="tab-offers" class="tab-content">
+    <div class="section-box">
+      <h2>إضافة عرض / باقة</h2>
+      <form id="offerForm" class="add-form">
+        <input type="text" id="offerTitle" placeholder="عنوان العرض" required style="min-width:150px;">
+        <textarea id="offerDescription" placeholder="وصف العرض" required style="min-width:200px;"></textarea>
+        <input type="text" id="offerPrice" placeholder="السعر مثل 999 EGP" required style="min-width:130px;">
+        <input type="text" id="offerLabel" placeholder="العلامة مثل Premium" style="min-width:120px;">
+        <input type="text" id="offerFeatures" placeholder="المميزات وافصلي بينهم |" style="min-width:180px;">
+        <input type="number" id="offerSortOrder" placeholder="الترتيب" value="0" style="min-width:90px;">
+        <label class="check-wrap">
+          <input type="checkbox" id="offerIsHighlighted">
+          مميز
+        </label>
+        <button type="submit" class="btn btn-primary">إضافة</button>
+      </form>
+    </div>
+    <div class="section-box">
+      <h2>العروض الحالية</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>العنوان</th><th>الوصف</th><th>السعر</th><th>العلامة</th>
+              <th>المميزات</th><th>الترتيب</th><th>مميز</th><th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="offersTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: REMINDERS ===== -->
+  <div id="tab-reminders" class="tab-content">
+
+  <!-- القسم 2: الإرسال اليدوي -->
+  <div class="section-box">
+    <h2>📲 إرسال يدوي</h2>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">
+      اختاري عميلات وابعتيلهم رسالة دلوقتي.
+    </p>
+
+    <!-- الرسالة -->
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-weight:700;margin-bottom:6px;font-size:13px;color:var(--text-muted);">
+        نص الرسالة
+        <span style="font-weight:400;font-size:11px;"> — استخدمي {name}</span>
+      </label>
+      <textarea id="manualMessage" rows="3" placeholder="اكتبي رسالتك هنا..."
+        style="padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-family:inherit;width:100%;resize:vertical;"></textarea>
+    </div>
+
+    <!-- تبويبات -->
+    <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
+      <button id="mtab-btn-bookings" onclick="switchManualTab('bookings')"
+        style="padding:10px 20px;border:none;background:none;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;border-bottom:3px solid #b76e79;color:#b76e79;margin-bottom:-2px;">
+        📋 من الحجوزات
+      </button>
+      <button id="mtab-btn-extra" onclick="switchManualTab('extra')"
+        style="padding:10px 20px;border:none;background:none;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;color:var(--text-muted);margin-bottom:-2px;">
+        ➕ عميلات يدويات
+      </button>
+    </div>
+
+    <!-- من الحجوزات -->
+    <div id="mtab-bookings">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+        <input type="text" id="manualSearchInput" placeholder="بحث بالاسم أو الهاتف..."
+          oninput="filterManualBookings()"
+          style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;min-width:200px;flex:1;">
+        <button class="btn btn-soft" onclick="loadManualBookings()">🔄 تحديث</button>
+        <button class="btn btn-soft" onclick="toggleAllBookingsBtn()">☑️ تحديد الكل</button>
+        <button class="btn btn-success" onclick="sendManualSelected()"
+          style="display:inline-flex;align-items:center;gap:6px;">
+          📤 إرسال للمحددين (<span id="selectedCount">0</span>)
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px;"><input type="checkbox" id="checkAllBookings" onchange="toggleAllBookings(this)"></th>
+              <th>الاسم</th><th>الهاتف</th><th>الخدمة</th><th>المنطقة</th><th>تاريخ الجلسة</th><th>الحالة</th>
+            </tr>
+          </thead>
+          <tbody id="manualBookingsBody">
+            <tr><td colspan="7" style="color:var(--text-muted);padding:20px;text-align:center;">اضغطي تحديث لعرض العميلات</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- عميلات يدويات -->
+    <div id="mtab-extra" style="display:none;">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+        <input type="text" id="extraName" placeholder="الاسم"
+          style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;flex:1;min-width:130px;">
+        <input type="text" id="extraPhone" placeholder="رقم الهاتف"
+          style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;flex:1;min-width:130px;">
+        <button class="btn btn-primary" onclick="addExtraContact()">➕ إضافة</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="btn btn-soft" onclick="toggleAllExtraBtn()">☑️ تحديد الكل</button>
+        <button class="btn btn-success" onclick="sendManualSelected()"
+          style="display:inline-flex;align-items:center;gap:6px;">
+          📤 إرسال للمحددين (<span id="selectedCountExtra">0</span>)
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px;"><input type="checkbox" id="checkAllExtra" onchange="toggleAllExtra(this)"></th>
+              <th>الاسم</th><th>الهاتف</th><th>حذف</th>
+            </tr>
+          </thead>
+          <tbody id="extraContactsBody">
+            <tr><td colspan="4" style="color:var(--text-muted);padding:20px;text-align:center;">لا توجد عميلات يدويات</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- القسم 3: عمليات الجلسة -->
+  <div class="section-box">
+    <h2>🏥 عمليات الجلسة</h2>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">
+      سجّلي العمليات والجلسات هنا وتقدري تفلتري مين عدا عليها عدد معين من الأيام.
+    </p>
+
+    <!-- فورم إضافة عملية -->
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px;">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;color:var(--primary);">➕ إضافة عملية جديدة</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px;">
+        <input type="text" id="opClientName" placeholder="اسم العميلة *"
+          style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Tajawal',sans-serif;font-size:13px;">
+        <input type="text" id="opPhone" placeholder="رقم الهاتف"
+          style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Tajawal',sans-serif;font-size:13px;">
+        <input type="text" id="opService" placeholder="الخدمة"
+          style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Tajawal',sans-serif;font-size:13px;">
+        <input type="text" id="opBodyArea" placeholder="المنطقة"
+          style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Tajawal',sans-serif;font-size:13px;">
+        <input type="date" id="opDate"
+          style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Tajawal',sans-serif;font-size:13px;">
+        <input type="text" id="opNotes" placeholder="ملاحظات"
+          style="padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Tajawal',sans-serif;font-size:13px;">
+      </div>
+      <button class="btn btn-primary" onclick="addSessionOperation()" style="padding:10px 24px;font-size:13px;">
+        💾 حفظ العملية
+      </button>
+    </div>
+
+    <!-- فلتر -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+      <label style="font-weight:700;font-size:13px;white-space:nowrap;">فلتر: مين عدا عليها</label>
+      <input type="number" id="opDaysFilter" min="1" max="365" placeholder="مثلاً: 21"
+        style="padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-family:'Tajawal',sans-serif;font-size:13px;width:110px;">
+      <label style="font-size:13px;color:var(--text-muted);">يوم أو أكثر</label>
+      <button class="btn btn-primary" onclick="filterSessionOperations()" style="padding:8px 18px;font-size:13px;">🔍 بحث</button>
+      <button class="btn btn-soft" onclick="loadSessionOperations()" style="padding:8px 18px;font-size:13px;">🔄 الكل</button>
+      <span id="opFilterBadge" style="display:none;background:#b76e79;color:#fff;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;"></span>
+    </div>
+
+    <!-- الجدول -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>الاسم</th><th>الهاتف</th><th>الخدمة</th><th>المنطقة</th>
+            <th>تاريخ العملية</th><th>أيام مضت</th><th>ملاحظات</th><th>واتساب</th><th>حذف</th>
+          </tr>
+        </thead>
+        <tbody id="sessionOpsBody">
+          <tr><td colspan="10" style="color:var(--text-muted);padding:20px;text-align:center;">اضغطي 🔄 الكل لعرض العمليات</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  </div><!-- /tab-reminders -->
+
+  <!-- ===== TAB: SETTINGS ===== -->
+  <div id="tab-settings" class="tab-content">
+    <div class="section-box" style="max-width:500px;">
+      <h2>تغيير بيانات الأدمن</h2>
+      <form id="credentialsForm" style="display:grid; gap:12px;">
+        <input type="text" id="currentUsername" placeholder="اسم المستخدم الحالي" required
+          style="padding:12px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="password" id="currentPassword" placeholder="كلمة المرور الحالية" required
+          style="padding:12px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="text" id="newUsername" placeholder="اسم المستخدم الجديد" required
+          style="padding:12px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <input type="password" id="newPassword" placeholder="كلمة المرور الجديدة" required
+          style="padding:12px; border:1px solid var(--border); border-radius:10px; font-family:'Tajawal',sans-serif;">
+        <button type="submit" class="btn btn-primary">حفظ التعديل</button>
+      </form>
+    </div>
+  </div>
+
+</div><!-- /adminPage -->
+
+<!-- CLIENT PROFILE MODAL -->
+<div id="clientModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="clientProfileName">ملف العميلة</h2>
+      <button class="btn btn-danger" id="closeClientModal">إغلاق ✕</button>
+    </div>
+
+    <div class="profile-grid" id="profileGridCards"></div>
+
+    <div class="modal-section-title">جلسات العميلة</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>التاريخ</th><th>الوقت</th><th>الخدمة</th><th>المنطقة</th><th>نوع الجلسة</th><th>الحالة</th><th>ملاحظات</th></tr>
+        </thead>
+        <tbody id="clientSessionsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="modal-section-title">حسابات العميلة</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>التاريخ</th><th>الخدمة/المنطقة</th><th>الكلي</th><th>المدفوع</th><th>الباقي</th><th>طريقة الدفع</th><th>ملاحظات</th></tr>
+        </thead>
+        <tbody id="clientFinanceBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hide"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>
