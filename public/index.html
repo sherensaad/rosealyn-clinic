@@ -30,6 +30,7 @@
         <a href="#services">الخدمات</a>
         <a href="#offers">العروض</a>
         <a href="#booking">الحجز</a>
+        <a href="#feedback">الشكاوى</a>
         <a href="#contact">التواصل</a>
       </nav>
 
@@ -51,6 +52,7 @@
       <a href="#services">الخدمات</a>
       <a href="#offers">العروض</a>
       <a href="#booking">الحجز</a>
+      <a href="#feedback">الشكاوى</a>
       <a href="#contact">التواصل</a>
     </nav>
   </div>
@@ -157,6 +159,79 @@
           <button type="submit" class="btn btn-primary submit-btn" id="submitBtn">تأكيد الحجز</button>
           <div id="messageBox" class="message-box" style="display:none;"></div>
         </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FEEDBACK SECTION ===== -->
+  <section class="section feedback" id="feedback">
+    <div class="container">
+      <div class="section-header">
+        <span>Your Voice Matters</span>
+        <h2>الشكاوى والاقتراحات</h2>
+        <p>رأيك يهمنا كتيرًا — ساعدينا نتطور ونقدملك أفضل تجربة ممكنة.</p>
+      </div>
+
+      <div class="feedback-wrapper">
+        <div class="feedback-info">
+          <div class="feedback-point">
+            <i class="fa-solid fa-comment-dots"></i>
+            <div>
+              <h4>شكوى أو مشكلة؟</h4>
+              <p>مش راضية عن خدمة؟ قوليلنا وهنتواصل معاكي في أسرع وقت.</p>
+            </div>
+          </div>
+          <div class="feedback-point">
+            <i class="fa-solid fa-lightbulb"></i>
+            <div>
+              <h4>اقتراح أو فكرة؟</h4>
+              <p>عندك اقتراح يحسّن تجربتك؟ احنا بنستمع لكل كلمة.</p>
+            </div>
+          </div>
+          <div class="feedback-point">
+            <i class="fa-solid fa-star"></i>
+            <div>
+              <h4>تقييم الخدمة</h4>
+              <p>تجربتك معانا هي أكبر جائزة بالنسبالنا.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="feedback-card">
+          <div class="feedback-card-header">
+            <i class="fa-brands fa-whatsapp"></i>
+            <div>
+              <h3>أرسلي رسالتك</h3>
+              <p>هنرد عليكِ على واتساب في أقرب وقت</p>
+            </div>
+          </div>
+          <form id="feedbackForm">
+            <div class="feedback-form-grid">
+              <input type="text" id="fbName" placeholder="اسمك" required />
+              <input type="text" id="fbPhone" placeholder="رقم هاتفك (اختياري)" />
+              <select id="fbType" required>
+                <option value="">نوع رسالتك</option>
+                <option value="شكوى">شكوى</option>
+                <option value="اقتراح">اقتراح</option>
+                <option value="تقييم إيجابي">تقييم إيجابي</option>
+                <option value="استفسار">استفسار</option>
+              </select>
+              <select id="fbBranch">
+                <option value="">الفرع (اختياري)</option>
+                <option value="فرع العبور">فرع العبور</option>
+                <option value="فرع ميت غمر">فرع ميت غمر</option>
+                <option value="فرع المنيا">فرع المنيا</option>
+              </select>
+              <textarea id="fbMessage" placeholder="اكتبي رسالتك هنا بكل حرية..." rows="5" required style="grid-column: 1 / -1;"></textarea>
+            </div>
+            <button type="submit" class="btn btn-whatsapp submit-btn" id="fbSubmitBtn">
+              <i class="fa-brands fa-whatsapp"></i>
+              إرسال على واتساب
+            </button>
+            <p class="fb-hint">هيفتحلك واتساب بالرسالة جاهزة — بس اضغطي إرسال</p>
+            <div id="fbMessageBox" class="message-box" style="display:none;"></div>
+          </form>
+        </div>
       </div>
     </div>
   </section>
