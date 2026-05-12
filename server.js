@@ -13,33 +13,56 @@ require("dotenv").config();
    Green API — per-branch
 ========================= */
 const BRANCH_GREEN_API = {
-  "فرع المنيا":   { instance: "7107602078", token: "88db43f8bc48410b8ea2bb7caacc0661de7f3e22486c4719a1" },
-  "فرع ميت غمر": { instance: "7107603446", token: "2959f3c69594462d9d7f2b96cde422d390a2ab990e2d406caa" },
-  "فرع العبور":  { instance: "7107603447", token: "8590d01dd6ac487588a9e5ec23126aef24d93578986d426fb1" }
+  "فرع المنيا": {
+    instance: "7107602078",
+    token: "88db43f8bc48410b8ea2bb7caacc0661de7f3e22486c4719a1",
+  },
+  "فرع ميت غمر": {
+    instance: "7107603446",
+    token: "2959f3c69594462d9d7f2b96cde422d390a2ab990e2d406caa",
+  },
+  "فرع العبور": {
+    instance: "7107603447",
+    token: "8590d01dd6ac487588a9e5ec23126aef24d93578986d426fb1",
+  },
 };
 
 function formatPhoneForWA(phone) {
   let p = String(phone || "").replace(/\D/g, "");
-  if (p.startsWith("0"))        p = "2" + p;
+  if (p.startsWith("0")) p = "2" + p;
   else if (!p.startsWith("20")) p = "20" + p;
   return p + "@c.us";
 }
 
 async function sendWhatsAppMessage(phone, message, branch) {
   const creds = BRANCH_GREEN_API[branch];
-  if (!creds) { console.warn("⚠️ لا يوجد إعداد Green API للفرع:", branch); return false; }
+  if (!creds) {
+    console.warn("⚠️ لا يوجد إعداد Green API للفرع:", branch);
+    return false;
+  }
   const chatId = formatPhoneForWA(phone);
-  const url = "https://api.green-api.com/waInstance" + creds.instance + "/sendMessage/" + creds.token;
+  const url =
+    "https://api.green-api.com/waInstance" +
+    creds.instance +
+    "/sendMessage/" +
+    creds.token;
   try {
     const r = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chatId, message })
+      body: JSON.stringify({ chatId, message }),
     });
     const d = await r.json();
-    if (d.idMessage) { console.log("✅ WA sent [" + branch + "] → " + phone); return true; }
-    console.error("❌ WA failed [" + branch + "]:", JSON.stringify(d)); return false;
-  } catch (err) { console.error("❌ WA error:", err.message); return false; }
+    if (d.idMessage) {
+      console.log("✅ WA sent [" + branch + "] → " + phone);
+      return true;
+    }
+    console.error("❌ WA failed [" + branch + "]:", JSON.stringify(d));
+    return false;
+  } catch (err) {
+    console.error("❌ WA error:", err.message);
+    return false;
+  }
 }
 
 /* =========================
@@ -49,10 +72,12 @@ async function sendWhatsAppMessage(phone, message, branch) {
 function startReminderCron() {
   async function runDailyReminders() {
     const now = new Date();
-    console.log(`\n🔔 Reminder Cron — بدأ التشغيل: ${now.toLocaleString("ar-EG")}`);
+    console.log(
+      `\n🔔 Reminder Cron — بدأ التشغيل: ${now.toLocaleString("ar-EG")}`,
+    );
     try {
       const [allSettings] = await db.execute(
-        "SELECT * FROM reminder_settings WHERE is_active = 1"
+        "SELECT * FROM reminder_settings WHERE is_active = 1",
       );
       if (allSettings.length === 0) {
         console.log("ℹ️  لا توجد فروع مفعّل فيها التذكير");
@@ -62,7 +87,11 @@ function startReminderCron() {
       let totalSkipped = 0;
 
       for (const settings of allSettings) {
-        const { branch, days_after: daysAfter, message_template: template } = settings;
+        const {
+          branch,
+          days_after: daysAfter,
+          message_template: template,
+        } = settings;
 
         const [clients] = await db.execute(
           `SELECT b.id, b.full_name, b.phone, b.service, b.body_area, b.preferred_date
@@ -70,7 +99,7 @@ function startReminderCron() {
            WHERE b.branch = ?
              AND b.status IN ('مكتمل', 'تم التأكيد', 'تم الحضور')
              AND DATE(b.preferred_date) = DATE_SUB(CURDATE(), INTERVAL ? DAY)`,
-          [branch, daysAfter]
+          [branch, daysAfter],
         );
 
         if (clients.length === 0) {
@@ -80,10 +109,9 @@ function startReminderCron() {
         console.log(`  📋 ${branch}: ${clients.length} عميلة مستحقة`);
 
         for (const client of clients) {
-          // تحقق إننا مبعتناش تذكير لهذا الحجز قبل كده
           const [already] = await db.execute(
             "SELECT id FROM reminder_logs WHERE booking_id = ? AND status = 'sent' LIMIT 1",
-            [client.id]
+            [client.id],
           );
           if (already.length > 0) {
             console.log(`  ⏭️  تم التخطي (مبعوت مسبقاً): ${client.full_name}`);
@@ -92,29 +120,37 @@ function startReminderCron() {
           }
 
           const dateStr = client.preferred_date
-            ? String(client.preferred_date).slice(0, 10) : "";
+            ? String(client.preferred_date).slice(0, 10)
+            : "";
           const message = template
-            .replace(/{name}/g,    client.full_name || "")
-            .replace(/{service}/g, client.service   || "")
-            .replace(/{area}/g,    client.body_area  || "")
-            .replace(/{date}/g,    dateStr);
+            .replace(/{name}/g, client.full_name || "")
+            .replace(/{service}/g, client.service || "")
+            .replace(/{area}/g, client.body_area || "")
+            .replace(/{date}/g, dateStr);
 
           const sent = await sendWhatsAppMessage(client.phone, message, branch);
 
           await db.execute(
             `INSERT INTO reminder_logs (booking_id, branch, phone, full_name, sent_at, status)
              VALUES (?, ?, ?, ?, NOW(), ?)`,
-            [client.id, branch, client.phone, client.full_name, sent ? "sent" : "failed"]
+            [
+              client.id,
+              branch,
+              client.phone,
+              client.full_name,
+              sent ? "sent" : "failed",
+            ],
           );
 
           if (sent) totalSent++;
           else totalSkipped++;
 
-          // ثانية بين كل رسالة ومنعاً للـ spam
-          await new Promise(r => setTimeout(r, 1000));
+          await new Promise((r) => setTimeout(r, 1000));
         }
       }
-      console.log(`✅ Cron انتهى — أُرسل: ${totalSent} | فشل/تخطي: ${totalSkipped}\n`);
+      console.log(
+        `✅ Cron انتهى — أُرسل: ${totalSent} | فشل/تخطي: ${totalSkipped}\n`,
+      );
     } catch (err) {
       console.error("❌ Cron error:", err.message);
     }
@@ -122,17 +158,21 @@ function startReminderCron() {
 
   async function getEarliestSendTime() {
     try {
-      const [rows] = await db.execute("SELECT send_time FROM reminder_settings WHERE is_active = 1 ORDER BY send_time ASC LIMIT 1");
-      return (rows[0]?.send_time || '09:00').slice(0,5);
-    } catch(_) { return '09:00'; }
+      const [rows] = await db.execute(
+        "SELECT send_time FROM reminder_settings WHERE is_active = 1 ORDER BY send_time ASC LIMIT 1",
+      );
+      return (rows[0]?.send_time || "09:00").slice(0, 5);
+    } catch (_) {
+      return "09:00";
+    }
   }
 
   async function scheduleCron() {
     const sendTime = await getEarliestSendTime();
-    const [h, m] = sendTime.split(':').map(Number);
+    const [h, m] = sendTime.split(":").map(Number);
 
     function msUntilNext() {
-      const now  = new Date();
+      const now = new Date();
       const next = new Date(now);
       next.setHours(h, m, 0, 0);
       if (now >= next) next.setDate(next.getDate() + 1);
@@ -141,9 +181,10 @@ function startReminderCron() {
 
     setTimeout(async function scheduleLoop() {
       await runDailyReminders();
-      // إعادة الجدولة كل يوم مع قراءة الوقت الجديد
+
       const updatedTime = await getEarliestSendTime();
-      const [nh, nm] = updatedTime.split(':').map(Number);
+      const [nh, nm] = updatedTime.split(":").map(Number);
+
       function msNext() {
         const now = new Date();
         const next = new Date(now);
@@ -151,11 +192,14 @@ function startReminderCron() {
         if (now >= next) next.setDate(next.getDate() + 1);
         return next - now;
       }
+
       setTimeout(scheduleLoop, msNext());
     }, msUntilNext());
 
     const hours = (msUntilNext() / 3600000).toFixed(1);
-    console.log(`⏰ Reminder Cron جاهز — التشغيل القادم بعد ${hours} ساعة (${sendTime})`);
+    console.log(
+      `⏰ Reminder Cron جاهز — التشغيل القادم بعد ${hours} ساعة (${sendTime})`,
+    );
   }
 
   scheduleCron();
@@ -163,17 +207,19 @@ function startReminderCron() {
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 app.use(
   helmet({
-    contentSecurityPolicy: false
-  })
+    contentSecurityPolicy: false,
+  }),
 );
 
 app.use(
   cors({
     origin: true,
-    credentials: true
-  })
+    credentials: true,
+  }),
 );
 
 app.use(express.json());
@@ -187,9 +233,9 @@ app.use(
     cookie: {
       httpOnly: true,
       secure: false,
-      maxAge: 1000 * 60 * 60 * 2
-    }
-  })
+      maxAge: 1000 * 60 * 60 * 2,
+    },
+  }),
 );
 
 const limiter = rateLimit({
@@ -197,8 +243,8 @@ const limiter = rateLimit({
   max: 200,
   message: {
     success: false,
-    message: "طلبات كثيرة جدًا، حاولي مرة أخرى بعد قليل"
-  }
+    message: "طلبات كثيرة جدًا، حاولي مرة أخرى بعد قليل",
+  },
 });
 
 app.use("/api", limiter);
@@ -206,10 +252,35 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const ALLOWED_BRANCHES = ["فرع العبور", "فرع ميت غمر", "فرع المنيا"];
 
+/* =========================
+   مواعيد تلقائية كل 30 دقيقة
+   العبور: 9 صباحًا لـ 9 مساءً
+   المنيا وميت غمر: 9 صباحًا لـ 10 مساءً
+========================= */
+
+function generateTimeSlots(branch) {
+  let endHour = 22;
+
+  if (branch === "فرع العبور") {
+    endHour = 21;
+  }
+
+  if (branch === "فرع المنيا" || branch === "فرع ميت غمر") {
+    endHour = 22;
+  }
+
+  const slots = [];
+
+  for (let hour = 9; hour < endHour; hour++) {
+    slots.push(`${String(hour).padStart(2, "0")}:00`);
+    slots.push(`${String(hour).padStart(2, "0")}:30`);
+  }
+
+  return slots;
+}
+
 function isValidPhone(phone) {
-  // يقبل كل شبكات مصر: 010 (فودافون)، 011 (إتصالات)، 012 (أورنج)، 015 (WE)
-  // ويقبل الصيغ: 01xxxxxxxxx أو +201xxxxxxxxx أو 201xxxxxxxxx
-  const cleaned = phone.replace(/[\s\-().]/g, "");
+  const cleaned = String(phone || "").replace(/[\s\-().]/g, "");
   return /^(\+20|20|0)1[0-25][0-9]{8}$/.test(cleaned);
 }
 
@@ -222,7 +293,7 @@ function requireAdminAuth(req, res, next) {
   if (!req.session || !req.session.adminId) {
     return res.status(401).json({
       success: false,
-      message: "غير مصرح، برجاء تسجيل الدخول أولًا"
+      message: "غير مصرح، برجاء تسجيل الدخول أولًا",
     });
   }
 
@@ -234,11 +305,10 @@ function requireAdminAuth(req, res, next) {
    Google Sheets Helpers
 ========================= */
 
-// خريطة أسماء الفروع → IDs الشيتات المنفصلة
 const BRANCH_SHEET_IDS = {
-  "فرع العبور":   "1WXmPnCXiBDjOpm4qfdg4mXDDGmj97vAOIW0xwCgRWi0",
+  "فرع العبور": "1WXmPnCXiBDjOpm4qfdg4mXDDGmj97vAOIW0xwCgRWi0",
   "فرع ميت غمر": "1D0yqhDXNqBbsnBjGzCoeB1KjN3wGsnZOH_QbTlarFj4",
-  "فرع المنيا":   "1Cjur0o0j5zzAsGHUjLMS2ggnXepgW-UcI6btWYCW1UE"
+  "فرع المنيا": "1Cjur0o0j5zzAsGHUjLMS2ggnXepgW-UcI6btWYCW1UE",
 };
 
 function getBranchSpreadsheetId(branch) {
@@ -254,7 +324,9 @@ function getGoogleCredentials() {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON || "";
 
   if (!raw || raw.trim() === "" || raw.includes("...")) {
-    console.error("❌ Google Sheets: GOOGLE_SERVICE_ACCOUNT_JSON غير موجود أو غير مكتمل في ملف .env");
+    console.error(
+      "❌ Google Sheets: GOOGLE_SERVICE_ACCOUNT_JSON غير موجود أو غير مكتمل في ملف .env",
+    );
     return null;
   }
 
@@ -275,16 +347,28 @@ function getGoogleCredentials() {
     return credentials;
   } catch (err) {
     console.error("❌ Google Sheets: خطأ في parsing الـ JSON:", err.message);
-    console.error("   تأكدي إن GOOGLE_SERVICE_ACCOUNT_JSON في .env هو JSON صحيح بدون quotes خارجية");
+    console.error(
+      "   تأكدي إن GOOGLE_SERVICE_ACCOUNT_JSON في .env هو JSON صحيح بدون quotes خارجية",
+    );
     return null;
   }
 }
 
 const SHEET_HEADERS = [
-  "ID", "الاسم", "الهاتف", "الفرع", "العمر",
-  "الخدمة", "المنطقة", "التاريخ", "الوقت",
-  "نوع الجلسة", "طريقة التواصل", "الحالة",
-  "ملاحظات طبية", "تاريخ الحجز"
+  "ID",
+  "الاسم",
+  "الهاتف",
+  "الفرع",
+  "العمر",
+  "الخدمة",
+  "المنطقة",
+  "التاريخ",
+  "الوقت",
+  "نوع الجلسة",
+  "طريقة التواصل",
+  "الحالة",
+  "ملاحظات طبية",
+  "تاريخ الحجز",
 ];
 
 const BOOKINGS_TAB = "الحجوزات";
@@ -292,26 +376,24 @@ const BOOKINGS_TAB = "الحجوزات";
 async function getOrCreateBookingsTab(sheets, spreadsheetId) {
   try {
     const meta = await sheets.spreadsheets.get({ spreadsheetId });
-    const existing = meta.data.sheets.map(s => s.properties.title);
+    const existing = meta.data.sheets.map((s) => s.properties.title);
 
     if (!existing.includes(BOOKINGS_TAB)) {
-      // أنشئ تاب جديد اسمه "الحجوزات"
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId,
         requestBody: {
-          requests: [{ addSheet: { properties: { title: BOOKINGS_TAB } } }]
-        }
+          requests: [{ addSheet: { properties: { title: BOOKINGS_TAB } } }],
+        },
       });
       console.log(`✅ Google Sheets: تم إنشاء تاب "${BOOKINGS_TAB}"`);
     }
 
-    // تأكد إن الهيدر صح
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: `${BOOKINGS_TAB}!A1:N1`,
     });
 
-    const firstRow = ((res.data.values || [])[0] || []);
+    const firstRow = (res.data.values || [])[0] || [];
     const isCorrect = SHEET_HEADERS.every((h, i) => firstRow[i] === h);
 
     if (!isCorrect) {
@@ -319,14 +401,17 @@ async function getOrCreateBookingsTab(sheets, spreadsheetId) {
         spreadsheetId,
         range: `${BOOKINGS_TAB}!A1`,
         valueInputOption: "USER_ENTERED",
-        requestBody: { values: [SHEET_HEADERS] }
+        requestBody: { values: [SHEET_HEADERS] },
       });
       console.log(`✅ Google Sheets: تم كتابة الهيدر في تاب "${BOOKINGS_TAB}"`);
     }
 
     return BOOKINGS_TAB;
   } catch (err) {
-    console.error("❌ Google Sheets: خطأ في getOrCreateBookingsTab:", err.message);
+    console.error(
+      "❌ Google Sheets: خطأ في getOrCreateBookingsTab:",
+      err.message,
+    );
     return null;
   }
 }
@@ -370,11 +455,18 @@ async function appendToSheet(rowData, branch) {
       requestBody: { values: [rowData] },
     });
 
-    console.log(`✅ Google Sheets (${branch}): تم إضافة الصف بنجاح، ID: ${rowData[0]}`);
+    console.log(
+      `✅ Google Sheets (${branch}): تم إضافة الصف بنجاح، ID: ${rowData[0]}`,
+    );
   } catch (err) {
     console.error(`🔴 Google Sheets append error (${branch}):`, err.message);
-    if (err.message && err.message.includes("The caller does not have permission")) {
-      console.error(`   ⚠️  تأكدي إن الشيت بتاع "${branch}" مضافالو service account كـ Editor`);
+    if (
+      err.message &&
+      err.message.includes("The caller does not have permission")
+    ) {
+      console.error(
+        `   ⚠️  تأكدي إن الشيت بتاع "${branch}" مضافالو service account كـ Editor`,
+      );
     }
   }
 }
@@ -409,7 +501,9 @@ async function updateSheetRow(bookingId, status, branch) {
     }
 
     if (targetRow === -1) {
-      console.warn(`⚠️ Google Sheets: لم يتم إيجاد الصف للـ bookingId: ${bookingId} في شيت الفرع: ${branch}`);
+      console.warn(
+        `⚠️ Google Sheets: لم يتم إيجاد الصف للـ bookingId: ${bookingId} في شيت الفرع: ${branch}`,
+      );
       return;
     }
 
@@ -420,7 +514,9 @@ async function updateSheetRow(bookingId, status, branch) {
       requestBody: { values: [[status]] },
     });
 
-    console.log(`✅ Google Sheets (${branch}): تم تحديث الحالة، ID: ${bookingId} → ${status}`);
+    console.log(
+      `✅ Google Sheets (${branch}): تم تحديث الحالة، ID: ${bookingId} → ${status}`,
+    );
   } catch (err) {
     console.error("❌ Google Sheets update error:", err.message);
   }
@@ -510,17 +606,25 @@ async function initializeDatabase() {
       )
     `);
 
-    const newFinanceCols = ['branch', 'finance_date', 'service_area', 'payment_method', 'notes'];
+    const newFinanceCols = [
+      "branch",
+      "finance_date",
+      "service_area",
+      "payment_method",
+      "notes",
+    ];
     for (const col of newFinanceCols) {
       try {
         const colDefs = {
-          branch: 'VARCHAR(100) NULL AFTER id',
-          finance_date: 'VARCHAR(50) NULL AFTER branch',
-          service_area: 'VARCHAR(255) NULL AFTER client_name',
+          branch: "VARCHAR(100) NULL AFTER id",
+          finance_date: "VARCHAR(50) NULL AFTER branch",
+          service_area: "VARCHAR(255) NULL AFTER client_name",
           payment_method: "VARCHAR(100) DEFAULT 'كاش' AFTER remaining_amount",
-          notes: 'TEXT NULL AFTER payment_method'
+          notes: "TEXT NULL AFTER payment_method",
         };
-        await db.execute(`ALTER TABLE finances ADD COLUMN ${col} ${colDefs[col]}`);
+        await db.execute(
+          `ALTER TABLE finances ADD COLUMN ${col} ${colDefs[col]}`,
+        );
       } catch (_) {}
     }
 
@@ -565,12 +669,12 @@ async function initializeDatabase() {
       )
     `);
 
-    // إضافة عمود send_time لو مش موجود
     try {
-      await db.execute("ALTER TABLE reminder_settings ADD COLUMN send_time VARCHAR(5) NOT NULL DEFAULT '09:00' AFTER days_after");
-    } catch(_) {}
+      await db.execute(
+        "ALTER TABLE reminder_settings ADD COLUMN send_time VARCHAR(5) NOT NULL DEFAULT '09:00' AFTER days_after",
+      );
+    } catch (_) {}
 
-    // جدول سجل الرسائل المبعوتة — يمنع التكرار
     await db.execute(`
       CREATE TABLE IF NOT EXISTS reminder_logs (
         id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -620,12 +724,14 @@ async function initializeDatabase() {
         await db.execute(
           `INSERT IGNORE INTO reminder_settings (branch, days_after, message_template, is_active)
            VALUES (?, 21, ?, 1)`,
-          [branch, defaultTemplate]
+          [branch, defaultTemplate],
         );
       } catch (_) {}
     }
 
-    const [servicesRows] = await db.execute("SELECT COUNT(*) AS count FROM services");
+    const [servicesRows] = await db.execute(
+      "SELECT COUNT(*) AS count FROM services",
+    );
     if (servicesRows[0].count === 0) {
       await db.execute(`
         INSERT INTO services (name, description, price, tag, is_featured, sort_order)
@@ -637,7 +743,9 @@ async function initializeDatabase() {
       `);
     }
 
-    const [offersRows] = await db.execute("SELECT COUNT(*) AS count FROM offers");
+    const [offersRows] = await db.execute(
+      "SELECT COUNT(*) AS count FROM offers",
+    );
     if (offersRows[0].count === 0) {
       await db.execute(`
         INSERT INTO offers (title, description, price, label, features, is_highlighted, sort_order)
@@ -662,6 +770,10 @@ app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
+app.get("/admin/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
 /* =========================
    Admin Auth
 ========================= */
@@ -675,19 +787,19 @@ app.post("/api/admin/login", async (req, res) => {
     if (!username || !password || !branch) {
       return res.status(400).json({
         success: false,
-        message: "اسم المستخدم وكلمة المرور والفرع مطلوبين"
+        message: "اسم المستخدم وكلمة المرور والفرع مطلوبين",
       });
     }
 
     const [rows] = await db.execute(
       "SELECT * FROM admin_users WHERE username = ? AND branch = ? LIMIT 1",
-      [username, branch]
+      [username, branch],
     );
 
     if (rows.length === 0) {
       return res.status(401).json({
         success: false,
-        message: "بيانات الدخول غير صحيحة لهذا الفرع"
+        message: "بيانات الدخول غير صحيحة لهذا الفرع",
       });
     }
 
@@ -697,7 +809,7 @@ app.post("/api/admin/login", async (req, res) => {
     if (!passwordMatch) {
       return res.status(401).json({
         success: false,
-        message: "بيانات الدخول غير صحيحة لهذا الفرع"
+        message: "بيانات الدخول غير صحيحة لهذا الفرع",
       });
     }
 
@@ -708,13 +820,13 @@ app.post("/api/admin/login", async (req, res) => {
     return res.json({
       success: true,
       message: "تم تسجيل الدخول بنجاح",
-      branch: admin.branch
+      branch: admin.branch,
     });
   } catch (error) {
     console.error("Admin login error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء تسجيل الدخول"
+      message: "حدث خطأ أثناء تسجيل الدخول",
     });
   }
 });
@@ -723,7 +835,7 @@ app.post("/api/admin/logout", requireAdminAuth, (req, res) => {
   req.session.destroy(() => {
     return res.json({
       success: true,
-      message: "تم تسجيل الخروج"
+      message: "تم تسجيل الخروج",
     });
   });
 });
@@ -734,13 +846,13 @@ app.get("/api/admin/me", (req, res) => {
       success: true,
       authenticated: true,
       adminUsername: req.session.adminUsername,
-      adminBranch: req.session.adminBranch
+      adminBranch: req.session.adminBranch,
     });
   }
 
   return res.json({
     success: true,
-    authenticated: false
+    authenticated: false,
   });
 });
 
@@ -754,19 +866,19 @@ app.put("/api/admin/change-credentials", requireAdminAuth, async (req, res) => {
     if (!currentUsername || !currentPassword || !newUsername || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: "من فضلك املئي كل الحقول"
+        message: "من فضلك املئي كل الحقول",
       });
     }
 
     const [rows] = await db.execute(
       "SELECT * FROM admin_users WHERE id = ? LIMIT 1",
-      [req.session.adminId]
+      [req.session.adminId],
     );
 
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "الأدمن غير موجود"
+        message: "الأدمن غير موجود",
       });
     }
 
@@ -775,7 +887,7 @@ app.put("/api/admin/change-credentials", requireAdminAuth, async (req, res) => {
     if (admin.username !== currentUsername) {
       return res.status(401).json({
         success: false,
-        message: "اسم المستخدم الحالي غير صحيح"
+        message: "اسم المستخدم الحالي غير صحيح",
       });
     }
 
@@ -784,7 +896,7 @@ app.put("/api/admin/change-credentials", requireAdminAuth, async (req, res) => {
     if (!match) {
       return res.status(401).json({
         success: false,
-        message: "كلمة المرور الحالية غير صحيحة"
+        message: "كلمة المرور الحالية غير صحيحة",
       });
     }
 
@@ -792,20 +904,20 @@ app.put("/api/admin/change-credentials", requireAdminAuth, async (req, res) => {
 
     await db.execute(
       "UPDATE admin_users SET username = ?, password = ? WHERE id = ?",
-      [newUsername, newHashedPassword, admin.id]
+      [newUsername, newHashedPassword, admin.id],
     );
 
     req.session.adminUsername = newUsername;
 
     return res.json({
       success: true,
-      message: "تم تحديث بيانات الأدمن بنجاح"
+      message: "تم تحديث بيانات الأدمن بنجاح",
     });
   } catch (error) {
     console.error("Change credentials error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء تحديث البيانات"
+      message: "حدث خطأ أثناء تحديث البيانات",
     });
   }
 });
@@ -817,18 +929,18 @@ app.put("/api/admin/change-credentials", requireAdminAuth, async (req, res) => {
 app.get("/api/services", async (req, res) => {
   try {
     const [rows] = await db.execute(
-      "SELECT * FROM services ORDER BY sort_order ASC, id ASC"
+      "SELECT * FROM services ORDER BY sort_order ASC, id ASC",
     );
 
     return res.json({
       success: true,
-      data: rows
+      data: rows,
     });
   } catch (error) {
     console.error("Fetch services error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء جلب الخدمات"
+      message: "حدث خطأ أثناء جلب الخدمات",
     });
   }
 });
@@ -836,21 +948,21 @@ app.get("/api/services", async (req, res) => {
 app.get("/api/offers", async (req, res) => {
   try {
     const [rows] = await db.execute(
-      "SELECT * FROM offers ORDER BY sort_order ASC, id ASC"
+      "SELECT * FROM offers ORDER BY sort_order ASC, id ASC",
     );
 
     return res.json({
       success: true,
       data: rows.map((item) => ({
         ...item,
-        features: item.features ? item.features.split("|").filter(Boolean) : []
-      }))
+        features: item.features ? item.features.split("|").filter(Boolean) : [],
+      })),
     });
   } catch (error) {
     console.error("Fetch offers error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء جلب العروض"
+      message: "حدث خطأ أثناء جلب العروض",
     });
   }
 });
@@ -862,18 +974,18 @@ app.get("/api/offers", async (req, res) => {
 app.get("/api/admin/services", requireAdminAuth, async (req, res) => {
   try {
     const [rows] = await db.execute(
-      "SELECT * FROM services ORDER BY sort_order ASC, id ASC"
+      "SELECT * FROM services ORDER BY sort_order ASC, id ASC",
     );
 
     return res.json({
       success: true,
-      data: rows
+      data: rows,
     });
   } catch (error) {
     console.error("Admin fetch services error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء جلب الخدمات"
+      message: "حدث خطأ أثناء جلب الخدمات",
     });
   }
 });
@@ -890,25 +1002,25 @@ app.post("/api/admin/services", requireAdminAuth, async (req, res) => {
     if (!name || !description || !price) {
       return res.status(400).json({
         success: false,
-        message: "من فضلك املئي اسم الخدمة والوصف والسعر"
+        message: "من فضلك املئي اسم الخدمة والوصف والسعر",
       });
     }
 
     await db.execute(
       `INSERT INTO services (name, description, price, tag, is_featured, sort_order)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [name, description, price, tag, isFeatured, sortOrder]
+      [name, description, price, tag, isFeatured, sortOrder],
     );
 
     return res.status(201).json({
       success: true,
-      message: "تمت إضافة الخدمة بنجاح"
+      message: "تمت إضافة الخدمة بنجاح",
     });
   } catch (error) {
     console.error("Create service error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء إضافة الخدمة"
+      message: "حدث خطأ أثناء إضافة الخدمة",
     });
   }
 });
@@ -926,7 +1038,7 @@ app.put("/api/admin/services/:id", requireAdminAuth, async (req, res) => {
     if (!name || !description || !price) {
       return res.status(400).json({
         success: false,
-        message: "من فضلك املئي اسم الخدمة والوصف والسعر"
+        message: "من فضلك املئي اسم الخدمة والوصف والسعر",
       });
     }
 
@@ -934,18 +1046,18 @@ app.put("/api/admin/services/:id", requireAdminAuth, async (req, res) => {
       `UPDATE services
        SET name = ?, description = ?, price = ?, tag = ?, is_featured = ?, sort_order = ?
        WHERE id = ?`,
-      [name, description, price, tag, isFeatured, sortOrder, id]
+      [name, description, price, tag, isFeatured, sortOrder, id],
     );
 
     return res.json({
       success: true,
-      message: "تم تحديث الخدمة بنجاح"
+      message: "تم تحديث الخدمة بنجاح",
     });
   } catch (error) {
     console.error("Update service error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء تحديث الخدمة"
+      message: "حدث خطأ أثناء تحديث الخدمة",
     });
   }
 });
@@ -958,13 +1070,13 @@ app.delete("/api/admin/services/:id", requireAdminAuth, async (req, res) => {
 
     return res.json({
       success: true,
-      message: "تم حذف الخدمة"
+      message: "تم حذف الخدمة",
     });
   } catch (error) {
     console.error("Delete service error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء حذف الخدمة"
+      message: "حدث خطأ أثناء حذف الخدمة",
     });
   }
 });
@@ -976,21 +1088,21 @@ app.delete("/api/admin/services/:id", requireAdminAuth, async (req, res) => {
 app.get("/api/admin/offers", requireAdminAuth, async (req, res) => {
   try {
     const [rows] = await db.execute(
-      "SELECT * FROM offers ORDER BY sort_order ASC, id ASC"
+      "SELECT * FROM offers ORDER BY sort_order ASC, id ASC",
     );
 
     return res.json({
       success: true,
       data: rows.map((item) => ({
         ...item,
-        features: item.features ? item.features.split("|").filter(Boolean) : []
-      }))
+        features: item.features ? item.features.split("|").filter(Boolean) : [],
+      })),
     });
   } catch (error) {
     console.error("Admin fetch offers error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء جلب العروض"
+      message: "حدث خطأ أثناء جلب العروض",
     });
   }
 });
@@ -1010,25 +1122,25 @@ app.post("/api/admin/offers", requireAdminAuth, async (req, res) => {
     if (!title || !description || !price) {
       return res.status(400).json({
         success: false,
-        message: "من فضلك املئي عنوان العرض والوصف والسعر"
+        message: "من فضلك املئي عنوان العرض والوصف والسعر",
       });
     }
 
     await db.execute(
       `INSERT INTO offers (title, description, price, label, features, is_highlighted, sort_order)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, price, label, features, isHighlighted, sortOrder]
+      [title, description, price, label, features, isHighlighted, sortOrder],
     );
 
     return res.status(201).json({
       success: true,
-      message: "تمت إضافة العرض بنجاح"
+      message: "تمت إضافة العرض بنجاح",
     });
   } catch (error) {
     console.error("Create offer error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء إضافة العرض"
+      message: "حدث خطأ أثناء إضافة العرض",
     });
   }
 });
@@ -1049,7 +1161,7 @@ app.put("/api/admin/offers/:id", requireAdminAuth, async (req, res) => {
     if (!title || !description || !price) {
       return res.status(400).json({
         success: false,
-        message: "من فضلك املئي عنوان العرض والوصف والسعر"
+        message: "من فضلك املئي عنوان العرض والوصف والسعر",
       });
     }
 
@@ -1057,18 +1169,27 @@ app.put("/api/admin/offers/:id", requireAdminAuth, async (req, res) => {
       `UPDATE offers
        SET title = ?, description = ?, price = ?, label = ?, features = ?, is_highlighted = ?, sort_order = ?
        WHERE id = ?`,
-      [title, description, price, label, features, isHighlighted, sortOrder, id]
+      [
+        title,
+        description,
+        price,
+        label,
+        features,
+        isHighlighted,
+        sortOrder,
+        id,
+      ],
     );
 
     return res.json({
       success: true,
-      message: "تم تحديث العرض بنجاح"
+      message: "تم تحديث العرض بنجاح",
     });
   } catch (error) {
     console.error("Update offer error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء تحديث العرض"
+      message: "حدث خطأ أثناء تحديث العرض",
     });
   }
 });
@@ -1081,13 +1202,13 @@ app.delete("/api/admin/offers/:id", requireAdminAuth, async (req, res) => {
 
     return res.json({
       success: true,
-      message: "تم حذف العرض"
+      message: "تم حذف العرض",
     });
   } catch (error) {
     console.error("Delete offer error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء حذف العرض"
+      message: "حدث خطأ أثناء حذف العرض",
     });
   }
 });
@@ -1104,27 +1225,48 @@ app.get("/api/available-slots", async (req, res) => {
     if (!branch || !slotDate) {
       return res.status(400).json({
         success: false,
-        message: "الفرع والتاريخ مطلوبان"
+        message: "الفرع والتاريخ مطلوبان",
       });
     }
 
-    const [rows] = await db.execute(
-      `SELECT id, slot_time
-       FROM available_slots
-       WHERE branch = ? AND slot_date = ? AND is_booked = 0
-       ORDER BY slot_time ASC`,
-      [branch, slotDate]
+    if (!ALLOWED_BRANCHES.includes(branch)) {
+      return res.status(400).json({
+        success: false,
+        message: "الفرع غير صحيح",
+      });
+    }
+
+    const allSlots = generateTimeSlots(branch);
+
+    const [bookedRows] = await db.execute(
+      `SELECT preferred_time
+       FROM bookings
+       WHERE branch = ?
+       AND preferred_date = ?
+       AND status NOT IN ('ملغي', 'تم الإلغاء', 'تأجيل')`,
+      [branch, slotDate],
     );
+
+    const bookedTimes = bookedRows.map((r) =>
+      String(r.preferred_time || "").slice(0, 5),
+    );
+
+    const available = allSlots
+      .filter((time) => !bookedTimes.includes(time))
+      .map((time) => ({
+        id: time,
+        slot_time: time,
+      }));
 
     return res.json({
       success: true,
-      data: rows
+      data: available,
     });
   } catch (error) {
     console.error("Fetch available slots error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء جلب المواعيد المتاحة"
+      message: "حدث خطأ أثناء جلب المواعيد المتاحة",
     });
   }
 });
@@ -1136,18 +1278,18 @@ app.get("/api/admin/slots", requireAdminAuth, async (req, res) => {
        FROM available_slots
        WHERE branch = ?
        ORDER BY slot_date ASC, slot_time ASC`,
-      [req.adminBranch]
+      [req.adminBranch],
     );
 
     return res.json({
       success: true,
-      data: rows
+      data: rows,
     });
   } catch (error) {
     console.error("Fetch admin slots error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء جلب المواعيد"
+      message: "حدث خطأ أثناء جلب المواعيد",
     });
   }
 });
@@ -1161,7 +1303,7 @@ app.post("/api/admin/slots", requireAdminAuth, async (req, res) => {
     if (!slotDate || !slotTime) {
       return res.status(400).json({
         success: false,
-        message: "من فضلك اختاري التاريخ والوقت"
+        message: "من فضلك اختاري التاريخ والوقت",
       });
     }
 
@@ -1170,31 +1312,31 @@ app.post("/api/admin/slots", requireAdminAuth, async (req, res) => {
        FROM available_slots
        WHERE branch = ? AND slot_date = ? AND slot_time = ?
        LIMIT 1`,
-      [branch, slotDate, slotTime]
+      [branch, slotDate, slotTime],
     );
 
     if (existing.length > 0) {
       return res.status(400).json({
         success: false,
-        message: "هذا الموعد موجود بالفعل"
+        message: "هذا الموعد موجود بالفعل",
       });
     }
 
     await db.execute(
       `INSERT INTO available_slots (branch, slot_date, slot_time, is_booked)
        VALUES (?, ?, ?, 0)`,
-      [branch, slotDate, slotTime]
+      [branch, slotDate, slotTime],
     );
 
     return res.status(201).json({
       success: true,
-      message: "تمت إضافة الموعد المتاح"
+      message: "تمت إضافة الموعد المتاح",
     });
   } catch (error) {
     console.error("Create slot error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء إضافة الموعد"
+      message: "حدث خطأ أثناء إضافة الموعد",
     });
   }
 });
@@ -1205,38 +1347,37 @@ app.delete("/api/admin/slots/:id", requireAdminAuth, async (req, res) => {
 
     const [rows] = await db.execute(
       "SELECT * FROM available_slots WHERE id = ? AND branch = ? LIMIT 1",
-      [id, req.adminBranch]
+      [id, req.adminBranch],
     );
 
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "الموعد غير موجود"
+        message: "الموعد غير موجود",
       });
     }
 
-    // لو الموعد محجوز، حرري الحجز المرتبط به أولاً
     if (Number(rows[0].is_booked) === 1 && rows[0].booking_id) {
       await db.execute(
         "UPDATE bookings SET preferred_date = NULL, preferred_time = NULL WHERE id = ?",
-        [rows[0].booking_id]
+        [rows[0].booking_id],
       );
     }
 
     await db.execute(
       "DELETE FROM available_slots WHERE id = ? AND branch = ?",
-      [id, req.adminBranch]
+      [id, req.adminBranch],
     );
 
     return res.json({
       success: true,
-      message: "تم حذف الموعد"
+      message: "تم حذف الموعد",
     });
   } catch (error) {
     console.error("Delete slot error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء حذف الموعد"
+      message: "حدث خطأ أثناء حذف الموعد",
     });
   }
 });
@@ -1247,52 +1388,98 @@ app.delete("/api/admin/slots/:id", requireAdminAuth, async (req, res) => {
 
 app.post("/api/admin/bookings", requireAdminAuth, async (req, res) => {
   try {
-    const fullName      = sanitizeText(req.body.fullName);
-    const phone         = sanitizeText(req.body.phone);
-    const age           = req.body.age ? Number(req.body.age) : null;
-    const service       = sanitizeText(req.body.service);
-    const bodyArea      = sanitizeText(req.body.bodyArea);
+    const fullName = sanitizeText(req.body.fullName);
+    const phone = sanitizeText(req.body.phone);
+    const age = req.body.age ? Number(req.body.age) : null;
+    const service = sanitizeText(req.body.service);
+    const bodyArea = sanitizeText(req.body.bodyArea);
     const preferredDate = sanitizeText(req.body.preferredDate);
     const preferredTime = sanitizeText(req.body.preferredTime);
-    const sessionType   = sanitizeText(req.body.sessionType);
+    const sessionType = sanitizeText(req.body.sessionType);
     const contactMethod = sanitizeText(req.body.contactMethod);
-    const medicalNotes  = sanitizeText(req.body.medicalNotes);
-    const status        = sanitizeText(req.body.status) || "حجز جديد";
-    const branch        = req.adminBranch;
+    const medicalNotes = sanitizeText(req.body.medicalNotes);
+    const status = sanitizeText(req.body.status) || "حجز جديد";
+    const branch = req.adminBranch;
 
-    const ALLOWED_STATUSES = ["حجز جديد","تم التأكيد","تم الحضور","مكتمل","غياب","ملغي","تأجيل"];
+    const ALLOWED_STATUSES = [
+      "حجز جديد",
+      "تم التأكيد",
+      "تم الحضور",
+      "مكتمل",
+      "غياب",
+      "ملغي",
+      "تأجيل",
+    ];
 
     if (!fullName || fullName.length < 2) {
       return res.status(400).json({ success: false, message: "الاسم مطلوب" });
     }
     if (!phone || !isValidPhone(phone)) {
-      return res.status(400).json({ success: false, message: "رقم الهاتف غير صحيح" });
+      return res
+        .status(400)
+        .json({ success: false, message: "رقم الهاتف غير صحيح" });
     }
     if (!preferredDate) {
       return res.status(400).json({ success: false, message: "التاريخ مطلوب" });
     }
     if (!ALLOWED_STATUSES.includes(status)) {
-      return res.status(400).json({ success: false, message: "الحالة غير صحيحة" });
+      return res
+        .status(400)
+        .json({ success: false, message: "الحالة غير صحيحة" });
     }
 
     const [result] = await db.execute(
       `INSERT INTO bookings
        (full_name, phone, branch, age, service, body_area, preferred_date, preferred_time, session_type, contact_method, medical_notes, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [fullName, phone, branch, age, service||null, bodyArea||null, preferredDate, preferredTime||null, sessionType||null, contactMethod||null, medicalNotes||null, status]
+      [
+        fullName,
+        phone,
+        branch,
+        age,
+        service || null,
+        bodyArea || null,
+        preferredDate,
+        preferredTime || null,
+        sessionType || null,
+        contactMethod || null,
+        medicalNotes || null,
+        status,
+      ],
     );
 
-    appendToSheet([
-      result.insertId, fullName, phone, branch, age||"", service||"",
-      bodyArea||"", preferredDate, preferredTime||"",
-      sessionType||"", contactMethod||"", status, medicalNotes||"",
-      new Date().toISOString().slice(0,10)
-    ], branch);
+    appendToSheet(
+      [
+        result.insertId,
+        fullName,
+        phone,
+        branch,
+        age || "",
+        service || "",
+        bodyArea || "",
+        preferredDate,
+        preferredTime || "",
+        sessionType || "",
+        contactMethod || "",
+        status,
+        medicalNotes || "",
+        new Date().toISOString().slice(0, 10),
+      ],
+      branch,
+    );
 
-    return res.status(201).json({ success: true, message: "تم حفظ الحجز بنجاح", bookingId: result.insertId });
+    return res
+      .status(201)
+      .json({
+        success: true,
+        message: "تم حفظ الحجز بنجاح",
+        bookingId: result.insertId,
+      });
   } catch (error) {
     console.error("Admin create booking error:", error);
-    return res.status(500).json({ success: false, message: "حدث خطأ أثناء الحفظ" });
+    return res
+      .status(500)
+      .json({ success: false, message: "حدث خطأ أثناء الحفظ" });
   }
 });
 
@@ -1305,7 +1492,10 @@ app.post("/api/bookings", async (req, res) => {
     const fullName = sanitizeText(req.body.fullName);
     const phone = sanitizeText(req.body.phone);
     const branch = sanitizeText(req.body.branch);
-    const slotId = parseInt(req.body.slotId, 10);
+    const preferredDate = sanitizeText(req.body.preferredDate);
+    const selectedTime = sanitizeText(
+      req.body.slotId || req.body.preferredTime,
+    );
     const age = req.body.age ? Number(req.body.age) : null;
     const service = sanitizeText(req.body.service);
     const bodyArea = sanitizeText(req.body.bodyArea);
@@ -1316,61 +1506,78 @@ app.post("/api/bookings", async (req, res) => {
     if (!fullName || fullName.length < 3) {
       return res.status(400).json({
         success: false,
-        message: "الاسم يجب أن يكون 3 أحرف على الأقل"
+        message: "الاسم يجب أن يكون 3 أحرف على الأقل",
       });
     }
 
     if (!phone || !isValidPhone(phone)) {
       return res.status(400).json({
         success: false,
-        message: "رقم الهاتف غير صحيح"
+        message: "رقم الهاتف غير صحيح",
       });
     }
 
     if (!ALLOWED_BRANCHES.includes(branch)) {
       return res.status(400).json({
         success: false,
-        message: "من فضلك اختاري الفرع"
+        message: "من فضلك اختاري الفرع",
       });
     }
 
-    if (!slotId || isNaN(slotId)) {
+    if (!preferredDate) {
       return res.status(400).json({
         success: false,
-        message: "من فضلك اختاري الموعد المتاح"
+        message: "من فضلك اختاري اليوم",
+      });
+    }
+
+    if (!selectedTime) {
+      return res.status(400).json({
+        success: false,
+        message: "من فضلك اختاري الموعد المتاح",
       });
     }
 
     if (!service) {
       return res.status(400).json({
         success: false,
-        message: "من فضلك اختاري الخدمة"
+        message: "من فضلك اختاري الخدمة",
       });
     }
 
     if (age !== null && (Number.isNaN(age) || age < 10 || age > 80)) {
       return res.status(400).json({
         success: false,
-        message: "العمر غير صحيح"
+        message: "العمر غير صحيح",
       });
     }
 
-    const [slotRows] = await db.execute(
-      `SELECT *
-       FROM available_slots
-       WHERE id = ? AND branch = ? AND is_booked = 0
-       LIMIT 1`,
-      [slotId, branch]
-    );
+    const timeShort = selectedTime.slice(0, 5);
+    const allSlots = generateTimeSlots(branch);
 
-    if (slotRows.length === 0) {
+    if (!allSlots.includes(timeShort)) {
       return res.status(400).json({
         success: false,
-        message: "هذا الموعد غير متاح الآن"
+        message: "هذا الموعد خارج ساعات العمل",
       });
     }
 
-    const slot = slotRows[0];
+    const [conflict] = await db.execute(
+      `SELECT id FROM bookings
+       WHERE branch = ?
+       AND preferred_date = ?
+       AND preferred_time = ?
+       AND status NOT IN ('ملغي', 'تم الإلغاء', 'تأجيل')
+       LIMIT 1`,
+      [branch, preferredDate, timeShort],
+    );
+
+    if (conflict.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "هذا الموعد تم حجزه بالفعل، من فضلك اختاري موعد آخر",
+      });
+    }
 
     const [result] = await db.execute(
       `INSERT INTO bookings
@@ -1396,50 +1603,45 @@ app.post("/api/bookings", async (req, res) => {
         age,
         service,
         bodyArea || null,
-        slot.slot_date,
-        slot.slot_time,
+        preferredDate,
+        timeShort,
         sessionType || null,
         contactMethod || null,
         medicalNotes || null,
-        "طلب جديد"
-      ]
+        "طلب جديد",
+      ],
     );
 
-    await db.execute(
-      `UPDATE available_slots
-       SET is_booked = 1, booking_id = ?
-       WHERE id = ?`,
-      [result.insertId, slotId]
-    );
-
-    // تزامن Google Sheets (بشكل غير متزامن لا يوقف الاستجابة)
-    appendToSheet([
-      result.insertId,
-      fullName,
-      phone,
+    appendToSheet(
+      [
+        result.insertId,
+        fullName,
+        phone,
+        branch,
+        age || "",
+        service,
+        bodyArea || "",
+        preferredDate,
+        timeShort,
+        sessionType || "",
+        contactMethod || "",
+        "طلب جديد",
+        medicalNotes || "",
+        new Date().toISOString().slice(0, 10),
+      ],
       branch,
-      age || "",
-      service,
-      bodyArea || "",
-      slot.slot_date,
-      slot.slot_time,
-      sessionType || "",
-      contactMethod || "",
-      "طلب جديد",
-      medicalNotes || "",
-      new Date().toISOString().slice(0, 10)
-    ], branch);
+    );
 
     return res.status(201).json({
       success: true,
-      message: "تم إرسال طلب الحجز بنجاح وسيتم التواصل معك على الرقم أو واتساب",
-      bookingId: result.insertId
+      message: "تم إرسال طلب الحجز بنجاح ✅ سيتم التواصل معك لتأكيد المعاد",
+      bookingId: result.insertId,
     });
   } catch (error) {
     console.error("Create booking error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء حفظ الحجز"
+      message: "حدث خطأ أثناء حفظ الحجز",
     });
   }
 });
@@ -1448,18 +1650,18 @@ app.get("/api/bookings", requireAdminAuth, async (req, res) => {
   try {
     const [rows] = await db.execute(
       "SELECT * FROM bookings WHERE branch = ? ORDER BY id DESC",
-      [req.adminBranch]
+      [req.adminBranch],
     );
 
     return res.json({
       success: true,
-      data: rows
+      data: rows,
     });
   } catch (error) {
     console.error("Fetch bookings error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء جلب الحجوزات"
+      message: "حدث خطأ أثناء جلب الحجوزات",
     });
   }
 });
@@ -1472,48 +1674,38 @@ app.patch("/api/bookings/:id/status", requireAdminAuth, async (req, res) => {
     if (!status) {
       return res.status(400).json({
         success: false,
-        message: "الحالة مطلوبة"
+        message: "الحالة مطلوبة",
       });
     }
 
     const [rows] = await db.execute(
       "SELECT * FROM bookings WHERE id = ? AND branch = ? LIMIT 1",
-      [id, req.adminBranch]
+      [id, req.adminBranch],
     );
 
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "الحجز غير موجود"
+        message: "الحجز غير موجود",
       });
-    }
-
-    if (status === "ملغي" || status === "تم الإلغاء" || status === "تأجيل") {
-      await db.execute(
-        `UPDATE available_slots
-         SET is_booked = 0, booking_id = NULL
-         WHERE booking_id = ?`,
-        [id]
-      );
     }
 
     await db.execute(
       "UPDATE bookings SET status = ? WHERE id = ? AND branch = ?",
-      [status, id, req.adminBranch]
+      [status, id, req.adminBranch],
     );
 
-    // تحديث الحالة في Google Sheets (بشكل غير متزامن)
     updateSheetRow(id, status, rows[0].branch);
 
     return res.json({
       success: true,
-      message: "تم تحديث حالة الحجز"
+      message: "تم تحديث حالة الحجز",
     });
   } catch (error) {
     console.error("Update booking status error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء تحديث الحالة"
+      message: "حدث خطأ أثناء تحديث الحالة",
     });
   }
 });
@@ -1522,27 +1714,20 @@ app.delete("/api/bookings/:id", requireAdminAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
-    await db.execute(
-      `UPDATE available_slots
-       SET is_booked = 0, booking_id = NULL
-       WHERE booking_id = ?`,
-      [id]
-    );
-
-    await db.execute(
-      "DELETE FROM bookings WHERE id = ? AND branch = ?",
-      [id, req.adminBranch]
-    );
+    await db.execute("DELETE FROM bookings WHERE id = ? AND branch = ?", [
+      id,
+      req.adminBranch,
+    ]);
 
     return res.json({
       success: true,
-      message: "تم حذف الحجز"
+      message: "تم حذف الحجز",
     });
   } catch (error) {
     console.error("Delete booking error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء حذف الحجز"
+      message: "حدث خطأ أثناء حذف الحجز",
     });
   }
 });
@@ -1553,50 +1738,75 @@ app.delete("/api/bookings/:id", requireAdminAuth, async (req, res) => {
 
 app.post("/api/finances", requireAdminAuth, async (req, res) => {
   try {
-    const financeDate     = sanitizeText(req.body.financeDate);
-    const clientName      = sanitizeText(req.body.clientName);
-    const serviceArea     = sanitizeText(req.body.serviceArea);
-    const totalAmount     = Number(req.body.totalAmount || 0);
-    const paidAmount      = Number(req.body.paidAmount || 0);
-    const remainingAmount = Number(req.body.remainingAmount !== undefined ? req.body.remainingAmount : (totalAmount - paidAmount));
-    const paymentMethod   = sanitizeText(req.body.paymentMethod) || "كاش";
-    const notes           = sanitizeText(req.body.notes);
-    const branch          = req.adminBranch;
+    const financeDate = sanitizeText(req.body.financeDate);
+    const clientName = sanitizeText(req.body.clientName);
+    const serviceArea = sanitizeText(req.body.serviceArea);
+    const totalAmount = Number(req.body.totalAmount || 0);
+    const paidAmount = Number(req.body.paidAmount || 0);
+    const remainingAmount = Number(
+      req.body.remainingAmount !== undefined
+        ? req.body.remainingAmount
+        : totalAmount - paidAmount,
+    );
+    const paymentMethod = sanitizeText(req.body.paymentMethod) || "كاش";
+    const notes = sanitizeText(req.body.notes);
+    const branch = req.adminBranch;
 
     if (!clientName || clientName.length < 2) {
-      return res.status(400).json({ success: false, message: "اسم العميل غير صحيح" });
+      return res
+        .status(400)
+        .json({ success: false, message: "اسم العميل غير صحيح" });
     }
 
     if ([totalAmount, paidAmount].some(Number.isNaN)) {
-      return res.status(400).json({ success: false, message: "قيم الحسابات غير صحيحة" });
+      return res
+        .status(400)
+        .json({ success: false, message: "قيم الحسابات غير صحيحة" });
     }
 
     await db.execute(
       `INSERT INTO finances (branch, finance_date, client_name, service_area, total_amount, paid_amount, remaining_amount, payment_method, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [branch, financeDate || null, clientName, serviceArea || null, totalAmount, paidAmount, Math.max(remainingAmount, 0), paymentMethod, notes || null]
+      [
+        branch,
+        financeDate || null,
+        clientName,
+        serviceArea || null,
+        totalAmount,
+        paidAmount,
+        Math.max(remainingAmount, 0),
+        paymentMethod,
+        notes || null,
+      ],
     );
 
-    return res.status(201).json({ success: true, message: "تم حفظ الحساب بنجاح" });
+    return res
+      .status(201)
+      .json({ success: true, message: "تم حفظ الحساب بنجاح" });
   } catch (error) {
     console.error("Create finance error:", error);
-    return res.status(500).json({ success: false, message: "حدث خطأ أثناء حفظ الحساب" });
+    return res
+      .status(500)
+      .json({ success: false, message: "حدث خطأ أثناء حفظ الحساب" });
   }
 });
 
 app.get("/api/finances", requireAdminAuth, async (req, res) => {
   try {
-    const [rows] = await db.execute("SELECT * FROM finances WHERE branch = ? OR branch IS NULL ORDER BY finance_date DESC, id DESC", [req.adminBranch]);
+    const [rows] = await db.execute(
+      "SELECT * FROM finances WHERE branch = ? OR branch IS NULL ORDER BY finance_date DESC, id DESC",
+      [req.adminBranch],
+    );
 
     return res.json({
       success: true,
-      data: rows
+      data: rows,
     });
   } catch (error) {
     console.error("Fetch finances error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء جلب الحسابات"
+      message: "حدث خطأ أثناء جلب الحسابات",
     });
   }
 });
@@ -1609,17 +1819,16 @@ app.delete("/api/finances/:id", requireAdminAuth, async (req, res) => {
 
     return res.json({
       success: true,
-      message: "تم حذف الحساب"
+      message: "تم حذف الحساب",
     });
   } catch (error) {
     console.error("Delete finance error:", error);
     return res.status(500).json({
       success: false,
-      message: "حدث خطأ أثناء حذف الحساب"
+      message: "حدث خطأ أثناء حذف الحساب",
     });
   }
 });
-
 
 /* =========================
    Session Operations
@@ -1643,79 +1852,111 @@ app.get("/api/admin/session-operations", requireAdminAuth, async (req, res) => {
   }
 });
 
-app.post("/api/admin/session-operations", requireAdminAuth, async (req, res) => {
-  try {
-    const clientName    = sanitizeText(req.body.clientName);
-    const phone         = sanitizeText(req.body.phone);
-    const service       = sanitizeText(req.body.service);
-    const bodyArea      = sanitizeText(req.body.bodyArea);
-    const operationDate = sanitizeText(req.body.operationDate);
-    const notes         = sanitizeText(req.body.notes);
-    const branch        = req.adminBranch;
+app.post(
+  "/api/admin/session-operations",
+  requireAdminAuth,
+  async (req, res) => {
+    try {
+      const clientName = sanitizeText(req.body.clientName);
+      const phone = sanitizeText(req.body.phone);
+      const service = sanitizeText(req.body.service);
+      const bodyArea = sanitizeText(req.body.bodyArea);
+      const operationDate = sanitizeText(req.body.operationDate);
+      const notes = sanitizeText(req.body.notes);
+      const branch = req.adminBranch;
 
-    if (!clientName || clientName.length < 2) {
-      return res.status(400).json({ success: false, message: "الاسم مطلوب" });
-    }
-    if (!operationDate) {
-      return res.status(400).json({ success: false, message: "تاريخ العملية مطلوب" });
-    }
+      if (!clientName || clientName.length < 2) {
+        return res.status(400).json({ success: false, message: "الاسم مطلوب" });
+      }
+      if (!operationDate) {
+        return res
+          .status(400)
+          .json({ success: false, message: "تاريخ العملية مطلوب" });
+      }
 
-    await db.execute(
-      `INSERT INTO session_operations (branch, client_name, phone, service, body_area, operation_date, notes)
+      await db.execute(
+        `INSERT INTO session_operations (branch, client_name, phone, service, body_area, operation_date, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [branch, clientName, phone || null, service || null, bodyArea || null, operationDate, notes || null]
-    );
+        [
+          branch,
+          clientName,
+          phone || null,
+          service || null,
+          bodyArea || null,
+          operationDate,
+          notes || null,
+        ],
+      );
 
-    return res.status(201).json({ success: true, message: "تمت إضافة العملية بنجاح" });
-  } catch (err) {
-    console.error("session-operations POST error:", err);
-    return res.status(500).json({ success: false, message: "حدث خطأ" });
-  }
-});
+      return res
+        .status(201)
+        .json({ success: true, message: "تمت إضافة العملية بنجاح" });
+    } catch (err) {
+      console.error("session-operations POST error:", err);
+      return res.status(500).json({ success: false, message: "حدث خطأ" });
+    }
+  },
+);
 
-app.delete("/api/admin/session-operations/:id", requireAdminAuth, async (req, res) => {
-  try {
-    await db.execute(
-      "DELETE FROM session_operations WHERE id = ? AND branch = ?",
-      [req.params.id, req.adminBranch]
-    );
-    return res.json({ success: true, message: "تم الحذف" });
-  } catch (err) {
-    return res.status(500).json({ success: false, message: "حدث خطأ" });
-  }
-});
+app.delete(
+  "/api/admin/session-operations/:id",
+  requireAdminAuth,
+  async (req, res) => {
+    try {
+      await db.execute(
+        "DELETE FROM session_operations WHERE id = ? AND branch = ?",
+        [req.params.id, req.adminBranch],
+      );
+      return res.json({ success: true, message: "تم الحذف" });
+    } catch (err) {
+      return res.status(500).json({ success: false, message: "حدث خطأ" });
+    }
+  },
+);
 
 /* =========================
    Manual Send + Extra Contacts APIs
 ========================= */
 
-app.post("/api/admin/reminders/manual-send", requireAdminAuth, async (req, res) => {
-  try {
-    const branch = req.adminBranch;
-    const { targets, message } = req.body;
-    if (!targets || !Array.isArray(targets) || targets.length === 0)
-      return res.status(400).json({ success: false, message: "لا توجد عميلات مختارة" });
-    if (!message || message.trim().length < 2)
-      return res.status(400).json({ success: false, message: "الرسالة فارغة" });
-    let sent = 0, failed = 0;
-    for (const t of targets) {
-      const msg = message.replace(/{name}/g, t.name || "").replace(/{phone}/g, t.phone || "");
-      const ok = await sendWhatsAppMessage(t.phone, msg, branch);
-      if (ok) sent++; else failed++;
-      await new Promise(r => setTimeout(r, 700));
+app.post(
+  "/api/admin/reminders/manual-send",
+  requireAdminAuth,
+  async (req, res) => {
+    try {
+      const branch = req.adminBranch;
+      const { targets, message } = req.body;
+      if (!targets || !Array.isArray(targets) || targets.length === 0)
+        return res
+          .status(400)
+          .json({ success: false, message: "لا توجد عميلات مختارة" });
+      if (!message || message.trim().length < 2)
+        return res
+          .status(400)
+          .json({ success: false, message: "الرسالة فارغة" });
+      let sent = 0,
+        failed = 0;
+      for (const t of targets) {
+        const msg = message
+          .replace(/{name}/g, t.name || "")
+          .replace(/{phone}/g, t.phone || "");
+        const ok = await sendWhatsAppMessage(t.phone, msg, branch);
+        if (ok) sent++;
+        else failed++;
+        await new Promise((r) => setTimeout(r, 700));
+      }
+      return res.json({ success: true, sent, failed });
+    } catch (err) {
+      console.error("Manual send error:", err);
+      return res.status(500).json({ success: false, message: "حدث خطأ" });
     }
-    return res.json({ success: true, sent, failed });
-  } catch (err) {
-    console.error("Manual send error:", err);
-    return res.status(500).json({ success: false, message: "حدث خطأ" });
-  }
-});
+  },
+);
 
 app.get("/api/admin/extra-contacts", requireAdminAuth, async (req, res) => {
   try {
     const [rows] = await db.execute(
       "SELECT * FROM extra_contacts WHERE branch = ? ORDER BY created_at DESC",
-      [req.adminBranch]
+      [req.adminBranch],
     );
     return res.json({ success: true, data: rows });
   } catch (err) {
@@ -1727,10 +1968,12 @@ app.post("/api/admin/extra-contacts", requireAdminAuth, async (req, res) => {
   try {
     const { name, phone } = req.body;
     if (!name || !phone)
-      return res.status(400).json({ success: false, message: "الاسم والهاتف مطلوبين" });
+      return res
+        .status(400)
+        .json({ success: false, message: "الاسم والهاتف مطلوبين" });
     await db.execute(
       "INSERT INTO extra_contacts (branch, name, phone) VALUES (?, ?, ?)",
-      [req.adminBranch, name.trim(), phone.trim()]
+      [req.adminBranch, name.trim(), phone.trim()],
     );
     return res.json({ success: true, message: "تمت الإضافة" });
   } catch (err) {
@@ -1738,17 +1981,21 @@ app.post("/api/admin/extra-contacts", requireAdminAuth, async (req, res) => {
   }
 });
 
-app.delete("/api/admin/extra-contacts/:id", requireAdminAuth, async (req, res) => {
-  try {
-    await db.execute(
-      "DELETE FROM extra_contacts WHERE id = ? AND branch = ?",
-      [req.params.id, req.adminBranch]
-    );
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ success: false, message: "حدث خطأ" });
-  }
-});
+app.delete(
+  "/api/admin/extra-contacts/:id",
+  requireAdminAuth,
+  async (req, res) => {
+    try {
+      await db.execute(
+        "DELETE FROM extra_contacts WHERE id = ? AND branch = ?",
+        [req.params.id, req.adminBranch],
+      );
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ success: false, message: "حدث خطأ" });
+    }
+  },
+);
 
 /* =========================
    Reminder Settings
@@ -1758,7 +2005,7 @@ app.get("/api/admin/reminders", requireAdminAuth, async (req, res) => {
   try {
     const [rows] = await db.execute(
       "SELECT * FROM reminder_settings WHERE branch = ? LIMIT 1",
-      [req.adminBranch]
+      [req.adminBranch],
     );
     return res.json({ success: true, data: rows[0] || null });
   } catch (err) {
@@ -1770,15 +2017,19 @@ app.get("/api/admin/reminders", requireAdminAuth, async (req, res) => {
 app.put("/api/admin/reminders", requireAdminAuth, async (req, res) => {
   try {
     const daysAfter = Number(req.body.daysAfter);
-    const sendTime = (req.body.sendTime || '09:00').slice(0,5);
+    const sendTime = (req.body.sendTime || "09:00").slice(0, 5);
     const messageTemplate = sanitizeText(req.body.messageTemplate);
     const isActive = req.body.isActive ? 1 : 0;
 
     if (!messageTemplate || messageTemplate.length < 10) {
-      return res.status(400).json({ success: false, message: "نص الرسالة قصير جداً" });
+      return res
+        .status(400)
+        .json({ success: false, message: "نص الرسالة قصير جداً" });
     }
     if (isNaN(daysAfter) || daysAfter < 1 || daysAfter > 365) {
-      return res.status(400).json({ success: false, message: "عدد الأيام غير صحيح (1-365)" });
+      return res
+        .status(400)
+        .json({ success: false, message: "عدد الأيام غير صحيح (1-365)" });
     }
 
     await db.execute(
@@ -1789,7 +2040,7 @@ app.put("/api/admin/reminders", requireAdminAuth, async (req, res) => {
          send_time = VALUES(send_time),
          message_template = VALUES(message_template),
          is_active = VALUES(is_active)`,
-      [req.adminBranch, daysAfter, sendTime, messageTemplate, isActive]
+      [req.adminBranch, daysAfter, sendTime, messageTemplate, isActive],
     );
 
     return res.json({ success: true, message: "تم حفظ إعدادات التذكير" });
@@ -1803,11 +2054,15 @@ app.get("/api/admin/reminders/due", requireAdminAuth, async (req, res) => {
   try {
     const [settingsRows] = await db.execute(
       "SELECT * FROM reminder_settings WHERE branch = ? AND is_active = 1 LIMIT 1",
-      [req.adminBranch]
+      [req.adminBranch],
     );
 
     if (settingsRows.length === 0) {
-      return res.json({ success: true, data: [], message: "التذكير غير مفعّل" });
+      return res.json({
+        success: true,
+        data: [],
+        message: "التذكير غير مفعّل",
+      });
     }
 
     const settings = settingsRows[0];
@@ -1821,14 +2076,14 @@ app.get("/api/admin/reminders/due", requireAdminAuth, async (req, res) => {
          AND b.status IN ('مكتمل', 'تم التأكيد')
          AND DATE(b.preferred_date) = DATE_SUB(CURDATE(), INTERVAL ? DAY)
        ORDER BY b.preferred_date DESC`,
-      [req.adminBranch, daysAfter]
+      [req.adminBranch, daysAfter],
     );
 
     return res.json({
       success: true,
       data: rows,
       template: settings.message_template,
-      daysAfter
+      daysAfter,
     });
   } catch (err) {
     console.error("Get due reminders error:", err);
@@ -1840,7 +2095,6 @@ app.get("/api/admin/reminders/due", requireAdminAuth, async (req, res) => {
    Reminder Logs (سجل الرسائل المبعوتة)
 ========================= */
 
-// عرض السجل
 app.get("/api/admin/reminders/logs", requireAdminAuth, async (req, res) => {
   try {
     const [rows] = await db.execute(
@@ -1848,7 +2102,7 @@ app.get("/api/admin/reminders/logs", requireAdminAuth, async (req, res) => {
        WHERE branch = ?
        ORDER BY sent_at DESC
        LIMIT 100`,
-      [req.adminBranch]
+      [req.adminBranch],
     );
     return res.json({ success: true, data: rows });
   } catch (err) {
@@ -1857,61 +2111,75 @@ app.get("/api/admin/reminders/logs", requireAdminAuth, async (req, res) => {
   }
 });
 
-// تشغيل تجريبي يدوي (للاختبار فقط)
 app.post("/api/admin/reminders/run-now", requireAdminAuth, async (req, res) => {
   try {
-    const branch   = req.adminBranch;
-    const [sRows]  = await db.execute(
+    const branch = req.adminBranch;
+    const [sRows] = await db.execute(
       "SELECT * FROM reminder_settings WHERE branch = ? AND is_active = 1 LIMIT 1",
-      [branch]
+      [branch],
     );
     if (sRows.length === 0) {
-      return res.json({ success: false, message: "التذكير غير مفعّل لهذا الفرع" });
+      return res.json({
+        success: false,
+        message: "التذكير غير مفعّل لهذا الفرع",
+      });
     }
-    const settings  = sRows[0];
+    const settings = sRows[0];
     const [clients] = await db.execute(
       `SELECT b.id, b.full_name, b.phone, b.service, b.body_area, b.preferred_date
        FROM bookings b
        WHERE b.branch = ?
          AND b.status IN ('مكتمل', 'تم التأكيد', 'تم الحضور')
          AND DATE(b.preferred_date) = DATE_SUB(CURDATE(), INTERVAL ? DAY)`,
-      [branch, settings.days_after]
+      [branch, settings.days_after],
     );
 
     if (clients.length === 0) {
-      return res.json({ success: true, message: "لا توجد عميلات مستحقة اليوم", sent: 0 });
+      return res.json({
+        success: true,
+        message: "لا توجد عميلات مستحقة اليوم",
+        sent: 0,
+      });
     }
 
     let sent = 0;
     for (const client of clients) {
       const [already] = await db.execute(
         "SELECT id FROM reminder_logs WHERE booking_id = ? AND status = 'sent' LIMIT 1",
-        [client.id]
+        [client.id],
       );
       if (already.length > 0) continue;
 
-      const dateStr = client.preferred_date ? String(client.preferred_date).slice(0, 10) : "";
+      const dateStr = client.preferred_date
+        ? String(client.preferred_date).slice(0, 10)
+        : "";
       const message = settings.message_template
-        .replace(/{name}/g,    client.full_name || "")
-        .replace(/{service}/g, client.service   || "")
-        .replace(/{area}/g,    client.body_area  || "")
-        .replace(/{date}/g,    dateStr);
+        .replace(/{name}/g, client.full_name || "")
+        .replace(/{service}/g, client.service || "")
+        .replace(/{area}/g, client.body_area || "")
+        .replace(/{date}/g, dateStr);
 
       const ok = await sendWhatsAppMessage(client.phone, message, branch);
       await db.execute(
         `INSERT INTO reminder_logs (booking_id, branch, phone, full_name, sent_at, status)
          VALUES (?, ?, ?, ?, NOW(), ?)`,
-        [client.id, branch, client.phone, client.full_name, ok ? "sent" : "failed"]
+        [
+          client.id,
+          branch,
+          client.phone,
+          client.full_name,
+          ok ? "sent" : "failed",
+        ],
       );
       if (ok) sent++;
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
     }
 
     return res.json({
       success: true,
       message: `تم إرسال ${sent} رسالة من أصل ${clients.length} عميلة`,
       sent,
-      total: clients.length
+      total: clients.length,
     });
   } catch (err) {
     console.error("Run reminders now error:", err);
@@ -1929,7 +2197,6 @@ initializeDatabase().then(() => {
   app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
 
-    // تشخيص Google Sheets عند بدء التشغيل
     const creds = getGoogleCredentials();
     if (creds) {
       console.log(`✅ Google Sheets: جاهز`);
@@ -1938,10 +2205,11 @@ initializeDatabase().then(() => {
       console.log(`   فرع ميت غمر → ${BRANCH_SHEET_IDS["فرع ميت غمر"]}`);
       console.log(`   فرع المنيا  → ${BRANCH_SHEET_IDS["فرع المنيا"]}`);
     } else {
-      console.warn("⚠️  Google Sheets: غير مفعّل - الحجوزات ستُحفظ في قاعدة البيانات فقط");
+      console.warn(
+        "⚠️  Google Sheets: غير مفعّل - الحجوزات ستُحفظ في قاعدة البيانات فقط",
+      );
     }
 
-    // ابدأ الـ Cron Job للتذكيرات التلقائية
     startReminderCron();
   });
 });
